@@ -1,0 +1,2071 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de Stocks</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            min-height: 600px;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        header h1 {
+            font-size: 1.8rem;
+        }
+        
+        .main-content {
+            padding: 25px 20px;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .check-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            max-width: 300px;
+        }
+        
+        .check-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .check-button.primary {
+            background: #3498db;
+        }
+        
+        .check-button.primary:hover {
+            background: #2980b9;
+        }
+        
+        .check-button.success {
+            background: #27ae60;
+        }
+        
+        .check-button.success:hover {
+            background: #219653;
+        }
+        
+        .check-button i {
+            font-size: 2rem;
+        }
+        
+        .stats-section {
+            display: flex;
+            justify-content: space-around;
+            margin: 25px 0;
+            gap: 15px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .pending-section {
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .section-title {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            color: #2c3e50;
+        }
+        
+        .pending-list, .notes-list {
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+            max-height: 200px;
+        }
+        
+        .pending-item, .note-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .item-info {
+            flex: 1;
+        }
+        
+        .item-ref {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .item-details {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+        }
+        
+        .action-btn.edit {
+            color: #3498db;
+        }
+        
+        .action-btn.delete {
+            color: #e74c3c;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #219653;
+        }
+        
+        .btn-waiting {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-waiting:hover {
+            background: #2980b9;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        /* Footer Menu */
+        .footer-menu {
+            background: #2c3e50;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+        }
+        
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+            padding: 5px 10px;
+            position: relative;
+        }
+        
+        .menu-btn.active {
+            opacity: 1;
+        }
+        
+        .menu-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            width: 30px;
+            height: 3px;
+            background: #3498db;
+            border-radius: 3px;
+        }
+        
+        .menu-btn i {
+            font-size: 1.3rem;
+        }
+        
+        .menu-btn span {
+            display: inline-block;
+            font-size: 0.8rem;
+        }
+        
+        /* History View */
+        .history-view, .notes-view {
+            display: none;
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .search-bar {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .search-bar input {
+            border-radius: 8px 0 0 8px;
+            flex: 1;
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-size: 16px;
+        }
+        
+        .search-bar button {
+            border-radius: 0 8px 8px 0;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0 15px;
+            cursor: pointer;
+        }
+        
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-btn {
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .checklist-btn {
+            padding: 12px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .remove-mode-btn {
+            padding: 12px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .clear-filter-btn {
+            padding: 12px;
+            background: #7f8c8d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .history-list, .notes-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .history-ref {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .history-date {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .history-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        
+        .history-quantity {
+            font-weight: 600;
+            text-align: left;
+        }
+        
+        .history-difference {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .positive {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .negative {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .history-notes {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        /* Checkbox styling */
+        .history-checkbox {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        /* Remove button in history items */
+        .history-remove-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-left: 10px;
+            display: none;
+        }
+        
+        /* Selected item style */
+        .history-item.selected {
+            background-color: #e8f5e9;
+        }
+        
+        .history-item.selected .history-ref {
+            color: #1b5e20;
+        }
+        
+        /* Notes specific styles */
+        .note-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .note-date {
+            color: #7f8c8d;
+            font-size: 0.8rem;
+        }
+        
+        /* Filter Modal Styles */
+        .filter-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .filter-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .date-inputs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .date-input {
+            flex: 1;
+        }
+        
+        .date-input label {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .date-input input {
+            padding: 8px;
+            font-size: 14px;
+        }
+        
+        .filter-type {
+            margin-bottom: 15px;
+        }
+        
+        .filter-type label {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .filter-type select {
+            padding: 8px;
+            font-size: 14px;
+        }
+        
+        .filter-modal-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        
+        .filter-modal-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .apply-filter-btn {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .apply-filter-btn:hover {
+            background: #219653;
+        }
+        
+        .cancel-filter-btn {
+            background: #7f8c8d;
+            color: white;
+        }
+        
+        .cancel-filter-btn:hover {
+            background: #6c7a7d;
+        }
+        
+        .option-with-icon {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Lotes styles */
+        .lotes-checkbox {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .lotes-checkbox input[type="checkbox"] {
+            margin: 0;
+            width: auto;
+        }
+
+        .lotes-checkbox label {
+            margin: 0;
+            font-weight: 600;
+            color: #2c3e50;
+            order: 2; /* Coloca o texto após a checkbox */
+        }
+
+        .lotes-container {
+            display: none;
+            margin-top: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .lote-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .lote-row input {
+            flex: 1;
+            padding: 10px;
+        }
+        
+        .add-lote-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .remove-lote-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+        }
+        
+        /* Confirmation Modal */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .confirmation-content {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        
+        .confirmation-message {
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+        
+        .confirmation-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .confirmation-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .confirm-btn {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .cancel-btn {
+            background: #7f8c8d;
+            color: white;
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #27ae60;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            bottom: 30px;
+        }
+        
+        /* Table styles for lotes in history */
+        .lotes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .lotes-table th, .lotes-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .lotes-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .lotes-table .positive {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        
+        .lotes-table .negative {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .button-row {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .check-button {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .stats-section {
+                flex-direction: column;
+            }
+            
+            .filter-actions {
+                flex-direction: row;
+            }
+            
+            .date-inputs {
+                flex-direction: column;
+            }
+            
+            .lote-row {
+                flex-direction: column;
+            }
+            
+            .menu-btn.active::after {
+                bottom: -10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Verificador de Stocks</h1>
+        </header>
+        
+        <!-- Home View -->
+        <div class="main-content" id="home-view">
+            <div class="button-row">
+                <button class="check-button primary" id="checkItemBtn">
+                    <i class="fas fa-clipboard-check"></i>
+                    Verificar Item
+                </button>
+                <button class="check-button success" id="addNoteBtn">
+                    <i class="fas fa-plus"></i>
+                    Adicionar Nota
+                </button>
+            </div>
+            
+            <div class="pending-section">
+                <h2 class="section-title">Verificações em Espera</h2>
+                <div class="pending-list" id="pendingList">
+                    <div class="empty-state">
+                        <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>Nenhuma verificação em espera</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pending-section">
+                <h2 class="section-title">Estatísticas</h2>
+                <div class="stats-section">
+                    <div class="stat-card">
+                        <div class="stat-value" id="completedCount">0</div>
+                        <div class="stat-label">Concluídas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="pendingCount">0</div>
+                        <div class="stat-label">Em Espera</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="notesCount">0</div>
+                        <div class="stat-label">Notas</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- History View -->
+        <div class="history-view" id="history-view">
+            <h2 class="section-title">Histórico de Verificações</h2>
+            
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Pesquisar por referência...">
+                <button id="searchBtn"><i class="fas fa-search"></i></button>
+            </div>
+            
+            <div class="filter-actions">
+                <button class="filter-btn" id="filterBtn">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+                <button class="checklist-btn" id="checklistBtn">
+                    <i class="fas fa-check-square"></i> Checklist
+                </button>
+                <button class="remove-mode-btn" id="removeModeBtn">
+                    <i class="fas fa-times"></i> Remover
+                </button>
+                <button class="clear-filter-btn" id="clearFilterBtn">
+                    <i class="fas fa-eraser"></i> Limpar
+                </button>
+            </div>
+            
+            <div class="history-list" id="historyList">
+                <div class="empty-state">
+                    <i class="fas fa-history" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p>Nenhuma verificação no histórico</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notes View -->
+        <div class="notes-view" id="notes-view">
+            <h2 class="section-title">Anotações</h2>
+            
+            <div class="notes-list" id="notesList">
+                <div class="empty-state">
+                    <i class="fas fa-sticky-note" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p>Nenhuma anotação</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer Menu -->
+        <div class="footer-menu">
+            <button class="menu-btn active" id="homeBtn">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </button>
+            <button class="menu-btn" id="historyBtn">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Histórico</span>
+            </button>
+            <button class="menu-btn" id="notesBtn">
+                <i class="fas fa-sticky-note"></i>
+                <span>Anotações</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Verification Modal -->
+    <div class="modal" id="verificationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Verificar Item</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="itemReference">Referência do Artigo</label>
+                <input type="text" id="itemReference" placeholder="Ex: REF-12345">
+            </div>
+            
+            <div class="lotes-checkbox">
+                <input type="checkbox" id="hasLotes">
+                <label for="hasLotes">Lotes</label>
+            </div>
+            
+            <div class="lotes-container" id="lotesContainer">
+                <div class="lote-row">
+                    <input type="text" placeholder="Nome do Lote" class="lote-name">
+                    <input type="number" placeholder="PC" class="lote-pc">
+                    <input type="number" placeholder="Stock" class="lote-stock">
+                    <button class="remove-lote-btn">&times;</button>
+                </div>
+                <button class="add-lote-btn" id="addLoteBtn">
+                    <i class="fas fa-plus"></i> Adicionar Lote
+                </button>
+            </div>
+            
+            <div class="form-group" id="standardQuantities">
+                <label for="itemQuantityPc">Quantidade PC</label>
+                <input type="number" id="itemQuantityPc" placeholder="Ex: 10">
+            </div>
+            
+            <div class="form-group" id="standardQuantities2">
+                <label for="itemQuantityStock">Quantidade Stock</label>
+                <input type="number" id="itemQuantityStock" placeholder="Ex: 8">
+            </div>
+            
+            <div class="form-group">
+                <label for="itemNotes">Observações</label>
+                <textarea id="itemNotes" placeholder="Notas adicionais..."></textarea>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn btn-success" id="saveBtn">
+                    <i class="fas fa-check"></i> Guardar
+                </button>
+                <button class="modal-btn btn-waiting" id="waitBtn">
+                    <i class="fas fa-clock"></i> Espera
+                </button>
+                <button class="modal-btn btn-danger" id="cancelBtn">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notes Modal -->
+    <div class="modal" id="notesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="notesModalTitle">Nova Anotação</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="noteTitle">Título</label>
+                <input type="text" id="noteTitle" placeholder="Título da anotação">
+            </div>
+            
+            <div class="form-group">
+                <label for="noteContent">Conteúdo</label>
+                <textarea id="noteContent" placeholder="Escreva sua anotação..." rows="5"></textarea>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn btn-success" id="saveNoteBtn">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+                <button class="modal-btn btn-danger" id="deleteNoteBtn">
+                    <i class="fas fa-trash"></i> Apagar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Modal -->
+    <div class="filter-modal" id="filterModal">
+        <div class="filter-modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Filtrar Verificações</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="date-inputs">
+                <div class="form-group date-input">
+                    <label for="startDate">Data Início</label>
+                    <input type="date" id="startDate">
+                </div>
+                
+                <div class="form-group date-input">
+                    <label for="endDate">Data Fim</label>
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+            
+            <div class="form-group filter-type">
+                <label for="filterType">Tipo</label>
+                <select id="filterType">
+                    <option value="">Todas as verificações</option>
+                    <option value="checked">Verificado</option>
+                    <option value="unchecked">Não Verificado</option>
+                </select>
+            </div>
+            
+            <div class="filter-modal-actions">
+                <button class="filter-modal-btn apply-filter-btn" id="applyFilterBtn">Aplicar Filtro</button>
+                <button class="filter-modal-btn cancel-filter-btn" id="cancelFilterBtn">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modals -->
+    <div class="confirmation-modal" id="confirmRemoveHistoryModal">
+        <div class="confirmation-content">
+            <h2 class="modal-title">Confirmar Remoção</h2>
+            <p class="confirmation-message">Tem a certeza que deseja remover este item do histórico?</p>
+            <div class="confirmation-actions">
+                <button class="confirmation-btn cancel-btn" id="cancelRemoveHistory">Cancelar</button>
+                <button class="confirmation-btn confirm-btn" id="confirmRemoveHistory">Remover</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="confirmation-modal" id="confirmRemoveNoteModal">
+        <div class="confirmation-content">
+            <h2 class="modal-title">Confirmar Remoção</h2>
+            <p class="confirmation-message">Tem a certeza que deseja apagar esta anotação?</p>
+            <div class="confirmation-actions">
+                <button class="confirmation-btn cancel-btn" id="cancelRemoveNote">Cancelar</button>
+                <button class="confirmation-btn confirm-btn" id="confirmRemoveNote">Apagar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationMessage"></span>
+    </div>
+
+    <script>
+        // Dados da aplicação
+        let pendingItems = JSON.parse(localStorage.getItem('pendingItems')) || [];
+        let completedItems = JSON.parse(localStorage.getItem('completedItems')) || [];
+        let notes = JSON.parse(localStorage.getItem('notes')) || [];
+        let currentFilter = {
+            text: '',
+            startDate: null,
+            endDate: null,
+            type: ''
+        };
+        let currentNoteId = null;
+        let checklistMode = false;
+        let removeMode = false;
+        let selectedItems = [];
+        let itemToRemove = null;
+        let noteToRemove = null;
+        
+        // Elementos DOM
+        const homeView = document.getElementById('home-view');
+        const historyView = document.getElementById('history-view');
+        const notesView = document.getElementById('notes-view');
+        const checkItemBtn = document.getElementById('checkItemBtn');
+        const addNoteBtn = document.getElementById('addNoteBtn');
+        const pendingList = document.getElementById('pendingList');
+        const historyList = document.getElementById('historyList');
+        const notesList = document.getElementById('notesList');
+        const verificationModal = document.getElementById('verificationModal');
+        const notesModal = document.getElementById('notesModal');
+        const closeModalBtn = document.querySelectorAll('.close-modal');
+        const saveBtn = document.getElementById('saveBtn');
+        const waitBtn = document.getElementById('waitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const homeBtn = document.getElementById('homeBtn');
+        const historyBtn = document.getElementById('historyBtn');
+        const notesBtn = document.getElementById('notesBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const filterBtn = document.getElementById('filterBtn');
+        const checklistBtn = document.getElementById('checklistBtn');
+        const removeModeBtn = document.getElementById('removeModeBtn');
+        const clearFilterBtn = document.getElementById('clearFilterBtn');
+        const filterModal = document.getElementById('filterModal');
+        const applyFilterBtn = document.getElementById('applyFilterBtn');
+        const cancelFilterBtn = document.getElementById('cancelFilterBtn');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const filterType = document.getElementById('filterType');
+        const noteTitle = document.getElementById('noteTitle');
+        const noteContent = document.getElementById('noteContent');
+        const saveNoteBtn = document.getElementById('saveNoteBtn');
+        const deleteNoteBtn = document.getElementById('deleteNoteBtn');
+        const notesModalTitle = document.getElementById('notesModalTitle');
+        const hasLotesCheckbox = document.getElementById('hasLotes');
+        const lotesContainer = document.getElementById('lotesContainer');
+        const addLoteBtn = document.getElementById('addLoteBtn');
+        const standardQuantities = document.getElementById('standardQuantities');
+        const standardQuantities2 = document.getElementById('standardQuantities2');
+        const confirmRemoveHistoryModal = document.getElementById('confirmRemoveHistoryModal');
+        const confirmRemoveNoteModal = document.getElementById('confirmRemoveNoteModal');
+        const confirmRemoveHistory = document.getElementById('confirmRemoveHistory');
+        const cancelRemoveHistory = document.getElementById('cancelRemoveHistory');
+        const confirmRemoveNote = document.getElementById('confirmRemoveNote');
+        const cancelRemoveNote = document.getElementById('cancelRemoveNote');
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notificationMessage');
+        
+        // Elementos de estatísticas
+        const completedCountEl = document.getElementById('completedCount');
+        const pendingCountEl = document.getElementById('pendingCount');
+        const notesCountEl = document.getElementById('notesCount');
+        
+        // Campos do modal de verificação
+        const itemReference = document.getElementById('itemReference');
+        const itemQuantityPc = document.getElementById('itemQuantityPc');
+        const itemQuantityStock = document.getElementById('itemQuantityStock');
+        const itemNotes = document.getElementById('itemNotes');
+        
+        // Inicializar a aplicação
+        function initApp() {
+            // Definir datas padrão para o filtro
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.value = today;
+            endDateInput.value = today;
+            
+            updatePendingList();
+            updateHistoryList();
+            updateNotesList();
+            updateStats();
+            
+            // Event Listeners
+            checkItemBtn.addEventListener('click', openVerificationModal);
+            addNoteBtn.addEventListener('click', () => openNotesModal());
+            closeModalBtn.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    verificationModal.style.display = 'none';
+                    notesModal.style.display = 'none';
+                    filterModal.style.display = 'none';
+                    confirmRemoveHistoryModal.style.display = 'none';
+                    confirmRemoveNoteModal.style.display = 'none';
+                });
+            });
+            saveBtn.addEventListener('click', saveItem);
+            waitBtn.addEventListener('click', saveAsPending);
+            cancelBtn.addEventListener('click', closeVerificationModal);
+            homeBtn.addEventListener('click', showHomeView);
+            historyBtn.addEventListener('click', showHistoryView);
+            notesBtn.addEventListener('click', showNotesView);
+            searchBtn.addEventListener('click', searchHistory);
+            filterBtn.addEventListener('click', openFilterModal);
+            checklistBtn.addEventListener('click', toggleChecklistMode);
+            removeModeBtn.addEventListener('click', toggleRemoveMode);
+            clearFilterBtn.addEventListener('click', clearFilter);
+            applyFilterBtn.addEventListener('click', applyFilter);
+            cancelFilterBtn.addEventListener('click', closeFilterModal);
+            saveNoteBtn.addEventListener('click', saveNote);
+            deleteNoteBtn.addEventListener('click', () => {
+                if (currentNoteId) {
+                    noteToRemove = currentNoteId;
+                    confirmRemoveNoteModal.style.display = 'flex';
+                }
+            });
+            hasLotesCheckbox.addEventListener('change', toggleLotesContainer);
+            addLoteBtn.addEventListener('click', addLoteRow);
+            confirmRemoveHistory.addEventListener('click', removeHistoryItemConfirmed);
+            cancelRemoveHistory.addEventListener('click', () => {
+                confirmRemoveHistoryModal.style.display = 'none';
+            });
+            confirmRemoveNote.addEventListener('click', deleteNoteConfirmed);
+            cancelRemoveNote.addEventListener('click', () => {
+                confirmRemoveNoteModal.style.display = 'none';
+            });
+            
+            // Fechar modais clicando fora deles
+            window.addEventListener('click', (e) => {
+                if (e.target === verificationModal) closeVerificationModal();
+                if (e.target === notesModal) closeNotesModal();
+                if (e.target === filterModal) closeFilterModal();
+                if (e.target === confirmRemoveHistoryModal) confirmRemoveHistoryModal.style.display = 'none';
+                if (e.target === confirmRemoveNoteModal) confirmRemoveNoteModal.style.display = 'none';
+            });
+        }
+        
+        // Abrir modal de verificação
+        function openVerificationModal() {
+            verificationModal.style.display = 'flex';
+            itemReference.focus();
+        }
+        
+        // Fechar modal de verificação
+        function closeVerificationModal() {
+            verificationModal.style.display = 'none';
+            clearVerificationModalFields();
+        }
+        
+        // Limpar campos do modal de verificação
+        function clearVerificationModalFields() {
+            itemReference.value = '';
+            itemQuantityPc.value = '';
+            itemQuantityStock.value = '';
+            itemNotes.value = '';
+            hasLotesCheckbox.checked = false;
+            lotesContainer.style.display = 'none';
+            standardQuantities.style.display = 'block';
+            standardQuantities2.style.display = 'block';
+            
+            // Remover todos os lotes exceto o primeiro
+            const loteRows = lotesContainer.querySelectorAll('.lote-row');
+            for (let i = 1; i < loteRows.length; i++) {
+                loteRows[i].remove();
+            }
+            
+            // Limpar o primeiro lote
+            const firstLote = loteRows[0];
+            firstLote.querySelector('.lote-name').value = '';
+            firstLote.querySelector('.lote-pc').value = '';
+            firstLote.querySelector('.lote-stock').value = '';
+        }
+        
+        // Alternar visibilidade do container de lotes
+        function toggleLotesContainer() {
+            if (hasLotesCheckbox.checked) {
+                lotesContainer.style.display = 'block';
+                standardQuantities.style.display = 'none';
+                standardQuantities2.style.display = 'none';
+            } else {
+                lotesContainer.style.display = 'none';
+                standardQuantities.style.display = 'block';
+                standardQuantities2.style.display = 'block';
+            }
+        }
+        
+        // Adicionar linha de lote
+        function addLoteRow() {
+            const loteRow = document.createElement('div');
+            loteRow.className = 'lote-row';
+            loteRow.innerHTML = `
+                <input type="text" placeholder="Nome do Lote" class="lote-name">
+                <input type="number" placeholder="PC" class="lote-pc">
+                <input type="number" placeholder="Stock" class="lote-stock">
+                <button class="remove-lote-btn">&times;</button>
+            `;
+            lotesContainer.insertBefore(loteRow, addLoteBtn);
+            
+            // Adicionar evento ao botão de remover
+            loteRow.querySelector('.remove-lote-btn').addEventListener('click', function() {
+                loteRow.remove();
+            });
+        }
+        
+        // Mostrar notificação
+        function showNotification(message) {
+            notificationMessage.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Salvar item (verificação completa)
+        function saveItem() {
+            const reference = itemReference.value.trim();
+            const notes = itemNotes.value.trim();
+            
+            if (!reference) {
+                showNotification('Por favor, preencha a referência do artigo.');
+                return;
+            }
+            
+            let newItem;
+            
+            if (hasLotesCheckbox.checked) {
+                // Validar lotes
+                const loteRows = lotesContainer.querySelectorAll('.lote-row');
+                const lotes = [];
+                let isValid = true;
+                
+                for (const row of loteRows) {
+                    const name = row.querySelector('.lote-name').value.trim();
+                    const pc = row.querySelector('.lote-pc').value;
+                    const stock = row.querySelector('.lote-stock').value;
+                    
+                    if (!name || !pc || !stock) {
+                        isValid = false;
+                        break;
+                    }
+                    
+                    lotes.push({
+                        name,
+                        pc: parseInt(pc),
+                        stock: parseInt(stock)
+                    });
+                }
+                
+                if (!isValid) {
+                    showNotification('Por favor, preencha todos os campos dos lotes.');
+                    return;
+                }
+                
+                newItem = {
+                    id: Date.now(),
+                    reference,
+                    notes,
+                    date: new Date().toLocaleString('pt-PT'),
+                    status: 'completed',
+                    lotes: lotes
+                };
+            } else {
+                const quantityPc = itemQuantityPc.value;
+                const quantityStock = itemQuantityStock.value;
+                
+                if (!quantityPc || !quantityStock) {
+                    showNotification('Por favor, preencha as quantidades.');
+                    return;
+                }
+                
+                newItem = {
+                    id: Date.now(),
+                    reference,
+                    quantityPc: parseInt(quantityPc),
+                    quantityStock: parseInt(quantityStock),
+                    notes,
+                    date: new Date().toLocaleString('pt-PT'),
+                    status: 'completed'
+                };
+            }
+            
+            completedItems.unshift(newItem);
+            localStorage.setItem('completedItems', JSON.stringify(completedItems));
+            
+            showNotification('Verificação guardada com sucesso!');
+            closeVerificationModal();
+            updateHistoryList();
+            updateStats();
+        }
+        
+        // Salvar como pendente
+        function saveAsPending() {
+            const reference = itemReference.value.trim();
+            const notes = itemNotes.value.trim();
+            
+            if (!reference) {
+                showNotification('Por favor, preencha a referência do artigo.');
+                return;
+            }
+            
+            let newItem;
+            
+            if (hasLotesCheckbox.checked) {
+                // Validar lotes
+                const loteRows = lotesContainer.querySelectorAll('.lote-row');
+                const lotes = [];
+                let isValid = true;
+                
+                for (const row of loteRows) {
+                    const name = row.querySelector('.lote-name').value.trim();
+                    const pc = row.querySelector('.lote-pc').value;
+                    const stock = row.querySelector('.lote-stock').value;
+                    
+                    if (!name || !pc || !stock) {
+                        isValid = false;
+                        break;
+                    }
+                    
+                    lotes.push({
+                        name,
+                        pc: parseInt(pc),
+                        stock: parseInt(stock)
+                    });
+                }
+                
+                if (!isValid) {
+                    showNotification('Por favor, preencha todos os campos dos lotes.');
+                    return;
+                }
+                
+                newItem = {
+                    id: Date.now(),
+                    reference,
+                    notes,
+                    date: new Date().toLocaleString('pt-PT'),
+                    status: 'pending',
+                    lotes: lotes
+                };
+            } else {
+                const quantityPc = itemQuantityPc.value;
+                const quantityStock = itemQuantityStock.value;
+                
+                if (!quantityPc || !quantityStock) {
+                    showNotification('Por favor, preencha as quantidades.');
+                    return;
+                }
+                
+                newItem = {
+                    id: Date.now(),
+                    reference,
+                    quantityPc: parseInt(quantityPc),
+                    quantityStock: parseInt(quantityStock),
+                    notes,
+                    date: new Date().toLocaleString('pt-PT'),
+                    status: 'pending'
+                };
+            }
+            
+            pendingItems.unshift(newItem);
+            localStorage.setItem('pendingItems', JSON.stringify(pendingItems));
+            
+            showNotification('Verificação guardada em espera!');
+            closeVerificationModal();
+            updatePendingList();
+            updateStats();
+        }
+        
+        // Editar item pendente
+        function editPendingItem(id) {
+            const itemIndex = pendingItems.findIndex(item => item.id === id);
+            
+            if (itemIndex !== -1) {
+                const item = pendingItems[itemIndex];
+                
+                // Preencher o modal com os dados do item
+                itemReference.value = item.reference;
+                
+                if (item.lotes) {
+                    hasLotesCheckbox.checked = true;
+                    toggleLotesContainer();
+                    
+                    // Remover todos os lotes existentes
+                    const loteRows = lotesContainer.querySelectorAll('.lote-row');
+                    for (let i = 0; i < loteRows.length; i++) {
+                        loteRows[i].remove();
+                    }
+                    
+                    // Adicionar lotes do item
+                    for (const lote of item.lotes) {
+                        const loteRow = document.createElement('div');
+                        loteRow.className = 'lote-row';
+                        loteRow.innerHTML = `
+                            <input type="text" placeholder="Nome do Lote" class="lote-name" value="${lote.name}">
+                            <input type="number" placeholder="PC" class="lote-pc" value="${lote.pc}">
+                            <input type="number" placeholder="Stock" class="lote-stock" value="${lote.stock}">
+                            <button class="remove-lote-btn">&times;</button>
+                        `;
+                        lotesContainer.insertBefore(loteRow, addLoteBtn);
+                        
+                        // Adicionar evento ao botão de remover
+                        loteRow.querySelector('.remove-lote-btn').addEventListener('click', function() {
+                            loteRow.remove();
+                        });
+                    }
+                } else {
+                    itemQuantityPc.value = item.quantityPc;
+                    itemQuantityStock.value = item.quantityStock;
+                }
+                
+                itemNotes.value = item.notes || '';
+                
+                // Remover o item da lista de pendentes
+                pendingItems.splice(itemIndex, 1);
+                localStorage.setItem('pendingItems', JSON.stringify(pendingItems));
+                
+                // Abrir o modal
+                openVerificationModal();
+                updatePendingList();
+                updateStats();
+            }
+        }
+        
+        // Remover item pendente
+        function removePendingItem(id) {
+            itemToRemove = id;
+            confirmRemoveHistoryModal.style.display = 'flex';
+        }
+        
+        // Confirmar remoção de item do histórico
+        function removeHistoryItemConfirmed() {
+            if (itemToRemove) {
+                pendingItems = pendingItems.filter(item => item.id !== itemToRemove);
+                localStorage.setItem('pendingItems', JSON.stringify(pendingItems));
+                updatePendingList();
+                updateStats();
+                confirmRemoveHistoryModal.style.display = 'none';
+                itemToRemove = null;
+            }
+        }
+        
+        // Atualizar lista de pendentes
+        function updatePendingList() {
+            if (pendingItems.length === 0) {
+                pendingList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>Nenhuma verificação em espera</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            pendingList.innerHTML = pendingItems.map(item => {
+                let details = '';
+                
+                if (item.lotes) {
+                    details = `${item.lotes.length} lote(s)`;
+                } else {
+                    details = `PC: ${item.quantityPc} | Stock: ${item.quantityStock}`;
+                }
+                
+                return `
+                <div class="pending-item">
+                    <div class="item-info">
+                        <div class="item-ref">${item.reference}</div>
+                        <div class="item-details">
+                            ${details}
+                            ${item.notes ? ` | ${item.notes}` : ''}
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="action-btn edit" onclick="editPendingItem(${item.id})">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="action-btn delete" onclick="removePendingItem(${item.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+        
+        // Atualizar histórico
+        function updateHistoryList() {
+            let filteredItems = completedItems;
+            
+            // Aplicar filtro de texto
+            if (currentFilter.text) {
+                filteredItems = filteredItems.filter(item => 
+                    item.reference.toLowerCase().includes(currentFilter.text.toLowerCase())
+                );
+            }
+            
+            // Aplicar filtro de data
+            if (currentFilter.startDate && currentFilter.endDate) {
+                filteredItems = filteredItems.filter(item => {
+                    const itemDate = new Date(item.date.split(',')[0].split('/').reverse().join('-'));
+                    return itemDate >= currentFilter.startDate && itemDate <= currentFilter.endDate;
+                });
+            }
+            
+            // Aplicar filtro de tipo (checklist)
+            if (currentFilter.type) {
+                if (currentFilter.type === 'checked') {
+                    filteredItems = filteredItems.filter(item => selectedItems.includes(item.id));
+                } else if (currentFilter.type === 'unchecked') {
+                    filteredItems = filteredItems.filter(item => !selectedItems.includes(item.id));
+                }
+            }
+            
+            if (filteredItems.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-history" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>Nenhuma verificação no histórico</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            historyList.innerHTML = filteredItems.map(item => {
+                const isSelected = selectedItems.includes(item.id);
+                let content = '';
+                
+                if (item.lotes) {
+                    // Calcular totais
+                    let totalPc = 0;
+                    let totalStock = 0;
+                    
+                    for (const lote of item.lotes) {
+                        totalPc += lote.pc;
+                        totalStock += lote.stock;
+                    }
+                    
+                    const totalDifference = totalStock - totalPc;
+                    const totalDifferenceClass = totalDifference >= 0 ? 'positive' : 'negative';
+                    const totalDifferenceSymbol = totalDifference >= 0 ? '+' : '';
+                    
+                    // Construir tabela de lotes
+                    let lotesTable = `
+                    <table class="lotes-table">
+                        <thead>
+                            <tr>
+                                <th>Lote</th>
+                                <th>PC</th>
+                                <th>Stock</th>
+                                <th>Diferença</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
+                    
+                    for (const lote of item.lotes) {
+                        const difference = lote.stock - lote.pc;
+                        const differenceClass = difference >= 0 ? 'positive' : 'negative';
+                        const differenceSymbol = difference >= 0 ? '+' : '';
+                        
+                        lotesTable += `
+                            <tr>
+                                <td>${lote.name}</td>
+                                <td>${lote.pc}</td>
+                                <td>${lote.stock}</td>
+                                <td><span class="${differenceClass}">${differenceSymbol}${difference}</span></td>
+                            </tr>
+                        `;
+                    }
+                    
+                    lotesTable += `
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td><strong>Total</strong></td>
+                                <td><strong>${totalPc}</strong></td>
+                                <td><strong>${totalStock}</strong></td>
+                                <td><span class="${totalDifferenceClass}">${totalDifferenceSymbol}${totalDifference}</span></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    `;
+                    
+                    content = `
+                    <div class="history-item ${isSelected ? 'selected' : ''}" data-id="${item.id}">
+                        ${checklistMode ? `
+                        <input type="checkbox" class="history-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelectItem(${item.id}, this.checked)">
+                        ` : ''}
+                        <div style="flex: 1;">
+                            <div class="history-header">
+                                <span class="history-ref">${item.reference}</span>
+                                <span class="history-date">${item.date}</span>
+                            </div>
+                            ${lotesTable}
+                            ${item.notes ? `<div class="history-notes">${item.notes}</div>` : ''}
+                        </div>
+                        ${removeMode ? `
+                        <button class="history-remove-btn" onclick="removeHistoryItem(${item.id})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                    `;
+                } else {
+                    const difference = item.quantityStock - item.quantityPc;
+                    const differenceClass = difference >= 0 ? 'positive' : 'negative';
+                    const differenceSymbol = difference >= 0 ? '+' : '';
+                    
+                    content = `
+                    <div class="history-item ${isSelected ? 'selected' : ''}" data-id="${item.id}">
+                        ${checklistMode ? `
+                        <input type="checkbox" class="history-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelectItem(${item.id}, this.checked)">
+                        ` : ''}
+                        <div style="flex: 1;">
+                            <div class="history-header">
+                                <span class="history-ref">${item.reference}</span>
+                                <span class="history-date">${item.date}</span>
+                            </div>
+                            <div class="history-details">
+                                <div>
+                                    <div class="history-quantity">PC: ${item.quantityPc}</div>
+                                    <div class="history-quantity">Stock: ${item.quantityStock}</div>
+                                </div>
+                                <span class="history-difference ${differenceClass}">${differenceSymbol}${difference}</span>
+                            </div>
+                            ${item.notes ? `<div class="history-notes">${item.notes}</div>` : ''}
+                        </div>
+                        ${removeMode ? `
+                        <button class="history-remove-btn" onclick="removeHistoryItem(${item.id})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                    `;
+                }
+                
+                return content;
+            }).join('');
+            
+            // Mostrar ou esconder botões de remoção baseado no modo
+            const removeButtons = historyList.querySelectorAll('.history-remove-btn');
+            removeButtons.forEach(btn => {
+                btn.style.display = removeMode ? 'block' : 'none';
+            });
+        }
+        
+        // Alternar modo checklist
+        function toggleChecklistMode() {
+            checklistMode = !checklistMode;
+            removeMode = false;
+            updateHistoryList();
+            updateButtonStates();
+        }
+        
+        // Alternar modo de remoção
+        function toggleRemoveMode() {
+            removeMode = !removeMode;
+            checklistMode = false;
+            updateHistoryList();
+            updateButtonStates();
+        }
+        
+        // Atualizar estado dos botões
+        function updateButtonStates() {
+            checklistBtn.style.opacity = checklistMode ? '1' : '0.7';
+            removeModeBtn.style.opacity = removeMode ? '1' : '0.7';
+        }
+        
+        // Selecionar/desselecionar item
+        function toggleSelectItem(id, isChecked) {
+            if (isChecked) {
+                if (!selectedItems.includes(id)) {
+                    selectedItems.push(id);
+                }
+            } else {
+                selectedItems = selectedItems.filter(itemId => itemId !== id);
+            }
+            
+            // Atualizar a lista para refletir as mudanças
+            updateHistoryList();
+        }
+        
+        // Remover item do histórico
+        function removeHistoryItem(id) {
+            itemToRemove = id;
+            confirmRemoveHistoryModal.style.display = 'flex';
+        }
+        
+        // Confirmar remoção de item do histórico
+        function removeHistoryItemConfirmed() {
+            if (itemToRemove) {
+                completedItems = completedItems.filter(item => item.id !== itemToRemove);
+                localStorage.setItem('completedItems', JSON.stringify(completedItems));
+                
+                // Remover também dos selecionados se estiver lá
+                selectedItems = selectedItems.filter(itemId => itemId !== itemToRemove);
+                
+                updateHistoryList();
+                updateStats();
+                confirmRemoveHistoryModal.style.display = 'none';
+                itemToRemove = null;
+            }
+        }
+        
+        // Atualizar estatísticas
+        function updateStats() {
+            completedCountEl.textContent = completedItems.length;
+            pendingCountEl.textContent = pendingItems.length;
+            notesCountEl.textContent = notes.length;
+        }
+        
+        // Pesquisar no histórico
+        function searchHistory() {
+            currentFilter.text = searchInput.value.trim();
+            updateHistoryList();
+        }
+        
+        // Abrir modal de filtro
+        function openFilterModal() {
+            filterModal.style.display = 'flex';
+        }
+        
+        // Fechar modal de filtro
+        function closeFilterModal() {
+            filterModal.style.display = 'none';
+        }
+        
+        // Aplicar filtro
+        function applyFilter() {
+            currentFilter.startDate = new Date(startDateInput.value);
+            currentFilter.endDate = new Date(endDateInput.value);
+            currentFilter.type = filterType.value;
+            
+            // Ajustar para incluir todo o dia final
+            currentFilter.endDate.setHours(23, 59, 59, 999);
+            
+            closeFilterModal();
+            updateHistoryList();
+        }
+        
+        // Limpar filtro
+        function clearFilter() {
+            currentFilter = {
+                text: '',
+                startDate: null,
+                endDate: null,
+                type: ''
+            };
+            searchInput.value = '';
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.value = today;
+            endDateInput.value = today;
+            filterType.value = '';
+            checklistMode = false;
+            removeMode = false;
+            selectedItems = [];
+            updateHistoryList();
+            updateButtonStates();
+            closeFilterModal();
+        }
+        
+        // Mostrar view inicial
+        function showHomeView() {
+            homeView.style.display = 'flex';
+            historyView.style.display = 'none';
+            notesView.style.display = 'none';
+            homeBtn.classList.add('active');
+            historyBtn.classList.remove('active');
+            notesBtn.classList.remove('active');
+            
+            // Sair dos modos ao mudar de view
+            checklistMode = false;
+            removeMode = false;
+            updateButtonStates();
+        }
+        
+        // Mostrar view de histórico
+        function showHistoryView() {
+            homeView.style.display = 'none';
+            historyView.style.display = 'block';
+            notesView.style.display = 'none';
+            homeBtn.classList.remove('active');
+            historyBtn.classList.add('active');
+            notesBtn.classList.remove('active');
+            updateHistoryList();
+        }
+        
+        // Mostrar view de anotações
+        function showNotesView() {
+            homeView.style.display = 'none';
+            historyView.style.display = 'none';
+            notesView.style.display = 'block';
+            homeBtn.classList.remove('active');
+            historyBtn.classList.remove('active');
+            notesBtn.classList.add('active');
+            updateNotesList();
+            
+            // Sair dos modos ao mudar de view
+            checklistMode = false;
+            removeMode = false;
+            updateButtonStates();
+        }
+        
+        // Abrir modal de anotações
+        function openNotesModal(note = null) {
+            if (note && typeof note === 'object') {
+                // Editar nota existente
+                currentNoteId = note.id;
+                noteTitle.value = note.title;
+                noteContent.value = note.content;
+                notesModalTitle.textContent = 'Editar Anotação';
+                deleteNoteBtn.style.display = 'block';
+            } else {
+                // Nova nota
+                currentNoteId = null;
+                noteTitle.value = '';
+                noteContent.value = '';
+                notesModalTitle.textContent = 'Nova Anotação';
+                deleteNoteBtn.style.display = 'none';
+            }
+            notesModal.style.display = 'flex';
+        }
+        
+        // Fechar modal de anotações
+        function closeNotesModal() {
+            notesModal.style.display = 'none';
+        }
+        
+        // Salvar anotação
+        function saveNote() {
+            const title = noteTitle.value.trim();
+            const content = noteContent.value.trim();
+            
+            if (!title || !content) {
+                showNotification('Por favor, preencha o título e o conteúdo.');
+                return;
+            }
+            
+            if (currentNoteId) {
+                // Atualizar nota existente
+                const noteIndex = notes.findIndex(note => note.id === currentNoteId);
+                if (noteIndex !== -1) {
+                    notes[noteIndex] = { 
+                        id: currentNoteId, 
+                        title, 
+                        content,
+                        date: notes[noteIndex].date // Mantém a data original
+                    };
+                }
+            } else {
+                // Adicionar nova nota
+                const newNote = {
+                    id: Date.now(),
+                    title,
+                    content,
+                    date: new Date().toLocaleString('pt-PT')
+                };
+                notes.unshift(newNote);
+            }
+            
+            localStorage.setItem('notes', JSON.stringify(notes));
+            updateNotesList();
+            updateStats();
+            closeNotesModal();
+            showNotification('Anotação guardada com sucesso!');
+        }
+        
+        // Apagar anotação
+        function deleteNoteConfirmed() {
+            if (noteToRemove) {
+                notes = notes.filter(note => note.id !== noteToRemove);
+                localStorage.setItem('notes', JSON.stringify(notes));
+                updateNotesList();
+                updateStats();
+                closeNotesModal();
+                confirmRemoveNoteModal.style.display = 'none';
+                noteToRemove = null;
+                showNotification('Anotação removida com sucesso!');
+            }
+        }
+        
+        // Atualizar lista de anotações
+        function updateNotesList() {
+            if (notes.length === 0) {
+                notesList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-sticky-note" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>Nenhuma anotação</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            notesList.innerHTML = notes.map(note => `
+                <div class="note-item">
+                    <div class="item-info">
+                        <div class="note-title">${note.title}</div>
+                        <div class="note-date">${note.date}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="action-btn edit" onclick="openNotesModal(${JSON.stringify(note).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Iniciar a aplicação quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

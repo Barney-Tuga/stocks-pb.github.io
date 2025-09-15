@@ -2,12 +2,11 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verificador de Stocks</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Manifest + cor do tema -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#3498db">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de Stocks</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
     <style>
         * {
             margin: 0;
@@ -482,8 +481,7 @@
         }
         
         .history-list, .notes-list {
-            max-height: 400px;
-            overflow-y: auto;
+            /* REMOVIDO: max-height: 400px; e overflow-y: auto; */
             border: 1px solid #eee;
             border-radius: 8px;
             padding: 10px;
@@ -809,7 +807,7 @@
             color: white;
         }
         
-        /* Notification - MOVED TO TOP */
+        /* Notification - MOVED TO TOP e Z-INDEX AUMENTADO */
         .notification {
             position: fixed;
             top: 20px;
@@ -823,7 +821,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            z-index: 1000;
+            z-index: 2000; /* Aumentado para 2000 */
             opacity: 0;
             transition: opacity 0.3s, top 0.3s;
         }
@@ -870,11 +868,12 @@
                 padding: 10px;
                 overflow: hidden; /* Impede scroll no body em mobile */
             }
-            
+
             .container {
-                height: 85vh; /* Ajusta altura para mobile */
+                height: 80vh; /* Ajusta altura para mobile */
                 min-height: auto; /* Remove altura mínima fixa */
                 border-radius: 12px;
+                margin-top: -100px;
             }
             
             .button-row {
@@ -926,7 +925,7 @@
     </style>
 </head>
 <body>
-    <!-- Notification - MOVED TO TOP -->
+    <!-- Notification - MOVED TO TOP com z-index aumentado -->
     <div class="notification" id="notification">
         <i class="fas fa-check-circle"></i>
         <span id="notificationMessage"></span>
@@ -1201,7 +1200,7 @@
         let currentNoteId = null;
         let checklistMode = false;
         let removeMode = false;
-        let selectedItems = [];
+        let selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || []; // Carregar do localStorage
         let itemToRemove = null;
         let noteToRemove = null;
         
@@ -1484,7 +1483,7 @@
             updateStats();
         }
         
-        // Salvar como pendente
+        // Salvar como pendente (MODIFICADO para aceitar campos incompletos)
         function saveAsPending() {
             const reference = itemReference.value.trim();
             const notes = itemNotes.value.trim();
@@ -1497,31 +1496,23 @@
             let newItem;
             
             if (hasLotesCheckbox.checked) {
-                // Validar lotes
+                // Coletar lotes - apenas os completos serão salvos
                 const loteRows = lotesContainer.querySelectorAll('.lote-row');
                 const lotes = [];
-                let isValid = true;
                 
                 for (const row of loteRows) {
                     const name = row.querySelector('.lote-name').value.trim();
                     const pc = row.querySelector('.lote-pc').value;
                     const stock = row.querySelector('.lote-stock').value;
                     
-                    if (!name || !pc || !stock) {
-                        isValid = false;
-                        break;
+                    // Apenas adiciona lote se todos os campos estiverem preenchidos
+                    if (name && pc && stock) {
+                        lotes.push({
+                            name,
+                            pc: parseInt(pc),
+                            stock: parseInt(stock)
+                        });
                     }
-                    
-                    lotes.push({
-                        name,
-                        pc: parseInt(pc),
-                        stock: parseInt(stock)
-                    });
-                }
-                
-                if (!isValid) {
-                    showNotification('Por favor, preencha todos os campos dos lotes.');
-                    return;
                 }
                 
                 newItem = {
@@ -1530,16 +1521,12 @@
                     notes,
                     date: new Date().toLocaleString('pt-PT'),
                     status: 'pending',
-                    lotes: lotes
+                    lotes: lotes.length > 0 ? lotes : undefined
                 };
             } else {
-                const quantityPc = itemQuantityPc.value;
-                const quantityStock = itemQuantityStock.value;
-                
-                if (!quantityPc || !quantityStock) {
-                    showNotification('Por favor, preencha as quantidades.');
-                    return;
-                }
+                // Aceita valores vazios (serão guardados como 0)
+                const quantityPc = itemQuantityPc.value || '0';
+                const quantityStock = itemQuantityStock.value || '0';
                 
                 newItem = {
                     id: Date.now(),
@@ -1860,7 +1847,7 @@
             removeModeBtn.style.opacity = removeMode ? '1' : '0.7';
         }
         
-        // Selecionar/desselecionar item
+        // Selecionar/desselecionar item (MODIFICADO para guardar no localStorage)
         function toggleSelectItem(id, isChecked) {
             if (isChecked) {
                 if (!selectedItems.includes(id)) {
@@ -1869,6 +1856,9 @@
             } else {
                 selectedItems = selectedItems.filter(itemId => itemId !== id);
             }
+            
+            // Guardar no localStorage
+            localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
             
             // Atualizar a lista para refletir as mudanças
             updateHistoryList();
@@ -1880,7 +1870,7 @@
             confirmRemoveHistoryModal.style.display = 'flex';
         }
         
-        // Confirmar remoção de item do histórico
+        // Confirmar remoção de item do histórico (MODIFICADO para remover também dos selecionados)
         function removeHistoryItemConfirmed() {
             if (itemToRemove) {
                 completedItems = completedItems.filter(item => item.id !== itemToRemove);
@@ -1888,6 +1878,7 @@
                 
                 // Remover também dos selecionados se estiver lá
                 selectedItems = selectedItems.filter(itemId => itemId !== itemToRemove);
+                localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
                 
                 updateHistoryList();
                 updateStats();
@@ -2105,18 +2096,12 @@
     </script>
     <script>
         if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
+            window.addEventListener('load', () => {
             navigator.serviceWorker.register('service-worker.js')
-              .then(reg => console.log('Service Worker registado:', reg))
-              .catch(err => console.error('Erro no SW:', err));
-          });
+                .then(reg => console.log('Service Worker registado:', reg))
+                .catch(err => console.log('Erro no SW:', err));
+            });
         }
-  </script>
+    </script>
 </body>
 </html>
-
-
-
-
-
-

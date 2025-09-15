@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificador de Stocks</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
     <style>
         * {
             margin: 0;
@@ -2100,6 +2102,15 @@
         
         // Iniciar a aplicação quando o DOM estiver pronto
         document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('Service Worker registado:', reg))
+                .catch(err => console.log('Erro no SW:', err));
+            });
+        }
     </script>
 </body>
 </html>

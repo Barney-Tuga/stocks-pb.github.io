@@ -2,7 +2,7 @@
   "name": "Verificador de Stocks",
   "short_name": "StockCheck",
   "description": "Aplicação para verificação e registo de stocks",
-  "start_url": "./index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#2c3e50",
   "theme_color": "#3498db",
@@ -19,4 +19,5 @@
     }
   ]
 }
+
 

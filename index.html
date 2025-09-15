@@ -21,6 +21,7 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            overflow: hidden; /* Impede scroll no body */
         }
         
         .container {
@@ -34,7 +35,9 @@
             max-width: 800px;
             height: 90vh;
             min-height: 500px;
-            margin-top: -50px;
+            margin-top: 0; /* Removida margem negativa */
+            margin-bottom: 0; /* Removida margem negativa */
+            position: relative; /* Para posicionamento interno */
         }
         
         header {
@@ -498,6 +501,7 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 8px;
+            flex-wrap: wrap;
         }
         
         .history-ref {
@@ -514,6 +518,7 @@
             display: flex;
             justify-content: space-between;
             margin-top: 10px;
+            flex-wrap: wrap;
         }
         
         .history-quantity {
@@ -801,10 +806,10 @@
             color: white;
         }
         
-        /* Notification */
+        /* Notification - MOVED TO TOP */
         .notification {
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: #27ae60;
@@ -817,12 +822,12 @@
             gap: 10px;
             z-index: 1000;
             opacity: 0;
-            transition: opacity 0.3s, bottom 0.3s;
+            transition: opacity 0.3s, top 0.3s;
         }
         
         .notification.show {
             opacity: 1;
-            bottom: 30px;
+            top: 30px;
         }
         
         /* Table styles for lotes in history */
@@ -858,6 +863,17 @@
         }
         
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                overflow: hidden; /* Impede scroll no body em mobile */
+            }
+            
+            .container {
+                height: 95vh; /* Ajusta altura para mobile */
+                min-height: auto; /* Remove altura mínima fixa */
+                border-radius: 12px;
+            }
+            
             .button-row {
                 flex-direction: column;
                 align-items: center;
@@ -887,10 +903,32 @@
             .menu-btn.active::after {
                 bottom: -10px;
             }
+            
+            .history-header, .history-details {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .notification {
+                top: 10px;
+                width: 90%;
+                text-align: center;
+            }
+            
+            .notification.show {
+                top: 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Notification - MOVED TO TOP -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationMessage"></span>
+    </div>
+
     <div class="container">
         <header>
             <h1>Verificador de Stocks</h1>
@@ -1144,12 +1182,6 @@
                 <button class="confirmation-btn confirm-btn" id="confirmRemoveNote">Apagar</button>
             </div>
         </div>
-    </div>
-    
-    <!-- Notification -->
-    <div class="notification" id="notification">
-        <i class="fas fa-check-circle"></i>
-        <span id="notificationMessage"></span>
     </div>
 
     <script>

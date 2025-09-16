@@ -411,6 +411,12 @@
             color: #757575;
             font-size: 0.8rem;
         }
+
+        .note-type {
+            color: #2196F3;
+            font-size: 0.8rem;
+            margin-top: 3px;
+        }
         
         /* Modal Styles */
         .modal {
@@ -942,6 +948,19 @@
         <div class="notes-view" id="notes-view">
             <h2 class="section-title">Anotações</h2>
             
+            <!-- Barra de pesquisa para anotações -->
+            <div class="search-bar">
+                <input type="text" id="notesSearchInput" placeholder="Pesquisar por título...">
+                <button id="notesSearchBtn"><i class="fas fa-search"></i></button>
+            </div>
+            
+            <!-- Botões de filtro para anotações -->
+            <div class="filter-actions">
+                <button class="filter-btn" id="notesFilterBtn">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+            </div>
+            
             <div class="notes-list" id="notesList">
                 <div class="empty-state">
                     <i class="fas fa-sticky-note" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
@@ -1039,6 +1058,17 @@
                 <input type="text" id="noteTitle" placeholder="Título da anotação">
             </div>
             
+            <!-- Dropdown para tipo de nota -->
+            <div class="form-group">
+                <label for="noteType">Tipo de Nota</label>
+                <select id="noteType">
+                    <option value="Falta Fornecedor">Falta Fornecedor</option>
+                    <option value="Baixa Sistema">Baixa Sistema</option>
+                    <option value="Emprestado">Emprestado</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+            
             <div class="form-group">
                 <label for="noteContent">Conteúdo</label>
                 <textarea id="noteContent" placeholder="Escreva sua anotação..." rows="5"></textarea>
@@ -1086,7 +1116,50 @@
             
             <div class="filter-modal-actions">
                 <button class="filter-modal-btn apply-filter-btn" id="applyFilterBtn">Aplicar Filtro</button>
-                <button class="filter-modal-btn cancel-filter-btn" id="cancelFilterBtn">Cancelar</button>
+                <!-- Botão de limpar filtro no lugar do cancelar -->
+                <button class="filter-modal-btn cancel-filter-btn" id="clearFilterModalBtn">
+                    <i class="fas fa-eraser"></i> Limpar Filtro
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Modal for Notes -->
+    <div class="filter-modal" id="notesFilterModal">
+        <div class="filter-modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Filtrar Anotações</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="date-inputs">
+                <div class="form-group date-input">
+                    <label for="notesStartDate">Data Início</label>
+                    <input type="date" id="notesStartDate">
+                </div>
+                
+                <div class="form-group date-input">
+                    <label for="notesEndDate">Data Fim</label>
+                    <input type="date" id="notesEndDate">
+                </div>
+            </div>
+            
+            <div class="form-group filter-type">
+                <label for="notesFilterType">Tipo</label>
+                <select id="notesFilterType">
+                    <option value="">Todos os tipos</option>
+                    <option value="Falta Fornecedor">Falta Fornecedor</option>
+                    <option value="Baixa Sistema">Baixa Sistema</option>
+                    <option value="Emprestado">Emprestado</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+            
+            <div class="filter-modal-actions">
+                <button class="filter-modal-btn apply-filter-btn" id="applyNotesFilterBtn">Aplicar Filtro</button>
+                <button class="filter-modal-btn cancel-filter-btn" id="clearNotesFilterBtn">
+                    <i class="fas fa-eraser"></i> Limpar Filtro
+                </button>
             </div>
         </div>
     </div>
@@ -1136,6 +1209,12 @@
             endDate: null,
             type: ''
         };
+        let currentNotesFilter = {
+            text: '',
+            startDate: null,
+            endDate: null,
+            type: ''
+        };
         let currentNoteId = null;
         let checklistMode = false;
         let removeMode = false;
@@ -1143,6 +1222,7 @@
         let itemToRemove = null;
         let noteToRemove = null;
         let pendingItemToRemove = null;
+        let editingPendingItemId = null;
         
         // Elementos DOM
         const homeView = document.getElementById('home-view');
@@ -1170,11 +1250,12 @@
         const clearFilterBtn = document.getElementById('clearFilterBtn');
         const filterModal = document.getElementById('filterModal');
         const applyFilterBtn = document.getElementById('applyFilterBtn');
-        const cancelFilterBtn = document.getElementById('cancelFilterBtn');
+        const clearFilterModalBtn = document.getElementById('clearFilterModalBtn');
         const startDateInput = document.getElementById('startDate');
         const endDateInput = document.getElementById('endDate');
         const filterType = document.getElementById('filterType');
         const noteTitle = document.getElementById('noteTitle');
+        const noteType = document.getElementById('noteType');
         const noteContent = document.getElementById('noteContent');
         const saveNoteBtn = document.getElementById('saveNoteBtn');
         const deleteNoteBtn = document.getElementById('deleteNoteBtn');
@@ -1195,6 +1276,15 @@
         const cancelRemoveNote = document.getElementById('cancelRemoveNote');
         const notification = document.getElementById('notification');
         const notificationMessage = document.getElementById('notificationMessage');
+        const notesSearchInput = document.getElementById('notesSearchInput');
+        const notesSearchBtn = document.getElementById('notesSearchBtn');
+        const notesFilterBtn = document.getElementById('notesFilterBtn');
+        const notesFilterModal = document.getElementById('notesFilterModal');
+        const notesStartDate = document.getElementById('notesStartDate');
+        const notesEndDate = document.getElementById('notesEndDate');
+        const notesFilterType = document.getElementById('notesFilterType');
+        const applyNotesFilterBtn = document.getElementById('applyNotesFilterBtn');
+        const clearNotesFilterBtn = document.getElementById('clearNotesFilterBtn');
         
         // Elementos de estatísticas
         const completedCountEl = document.getElementById('completedCount');
@@ -1213,6 +1303,8 @@
             const today = new Date().toISOString().split('T')[0];
             startDateInput.value = today;
             endDateInput.value = today;
+            notesStartDate.value = today;
+            notesEndDate.value = today;
             
             updatePendingList();
             updateHistoryList();
@@ -1223,13 +1315,24 @@
             checkItemBtn.addEventListener('click', openVerificationModal);
             addNoteBtn.addEventListener('click', () => openNotesModal());
             closeModalBtn.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    verificationModal.style.display = 'none';
-                    notesModal.style.display = 'none';
-                    filterModal.style.display = 'none';
-                    confirmRemovePendingModal.style.display = 'none';
-                    confirmRemoveHistoryModal.style.display = 'none';
-                    confirmRemoveNoteModal.style.display = 'none';
+                btn.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('close-modal')) {
+                        verificationModal.style.display = 'none';
+                        notesModal.style.display = 'none';
+                        filterModal.style.display = 'none';
+                        notesFilterModal.style.display = 'none';
+                        confirmRemovePendingModal.style.display = 'none';
+                        confirmRemoveHistoryModal.style.display = 'none';
+                        confirmRemoveNoteModal.style.display = 'none';
+                        
+                        // Se estávamos editando um item pendente e fechamos o modal,
+                        // não removemos o item da lista (correção solicitada)
+                        if (editingPendingItemId !== null) {
+                            editingPendingItemId = null;
+                            // Recarregamos a lista para garantir que o item ainda aparece
+                            updatePendingList();
+                        }
+                    }
                 });
             });
             saveBtn.addEventListener('click', saveItem);
@@ -1244,7 +1347,7 @@
             removeModeBtn.addEventListener('click', toggleRemoveMode);
             clearFilterBtn.addEventListener('click', clearFilter);
             applyFilterBtn.addEventListener('click', applyFilter);
-            cancelFilterBtn.addEventListener('click', closeFilterModal);
+            clearFilterModalBtn.addEventListener('click', clearFilterAndClose);
             saveNoteBtn.addEventListener('click', saveNote);
             deleteNoteBtn.addEventListener('click', () => {
                 if (currentNoteId) {
@@ -1267,11 +1370,18 @@
                 confirmRemoveNoteModal.style.display = 'none';
             });
             
+            // Novos event listeners para funcionalidades de anotações
+            notesSearchBtn.addEventListener('click', searchNotes);
+            notesFilterBtn.addEventListener('click', openNotesFilterModal);
+            applyNotesFilterBtn.addEventListener('click', applyNotesFilter);
+            clearNotesFilterBtn.addEventListener('click', clearNotesFilter);
+            
             // Fechar modais clicando fora deles
             window.addEventListener('click', (e) => {
                 if (e.target === verificationModal) closeVerificationModal();
                 if (e.target === notesModal) closeNotesModal();
                 if (e.target === filterModal) closeFilterModal();
+                if (e.target === notesFilterModal) closeNotesFilterModal();
                 if (e.target === confirmRemovePendingModal) confirmRemovePendingModal.style.display = 'none';
                 if (e.target === confirmRemoveHistoryModal) confirmRemoveHistoryModal.style.display = 'none';
                 if (e.target === confirmRemoveNoteModal) confirmRemoveNoteModal.style.display = 'none';
@@ -1288,6 +1398,7 @@
         function closeVerificationModal() {
             verificationModal.style.display = 'none';
             clearVerificationModalFields();
+            editingPendingItemId = null; // Resetar o ID de edição ao fechar
         }
         
         // Limpar campos do modal de verificação
@@ -1358,7 +1469,7 @@
         // Salvar item (verificação completa)
         function saveItem() {
             const reference = itemReference.value.trim();
-            const notes = itemNotes.value.trim();
+            const notesText = itemNotes.value.trim();
             
             if (!reference) {
                 showNotification('Por favor, preencha a referência do artigo.');
@@ -1398,7 +1509,7 @@
                 newItem = {
                     id: Date.now(),
                     reference,
-                    notes,
+                    notes: notesText,
                     date: new Date().toLocaleString('pt-PT'),
                     status: 'completed',
                     lotes: lotes
@@ -1417,25 +1528,33 @@
                     reference,
                     quantityPc: parseInt(quantityPc),
                     quantityStock: parseInt(quantityStock),
-                    notes,
+                    notes: notesText,
                     date: new Date().toLocaleString('pt-PT'),
                     status: 'completed'
                 };
             }
             
+            // Se estávamos editando, remover o item anterior
+            if (editingPendingItemId !== null) {
+                pendingItems = pendingItems.filter(item => item.id !== editingPendingItemId);
+                editingPendingItemId = null;
+            }
+            
             completedItems.unshift(newItem);
             localStorage.setItem('completedItems', JSON.stringify(completedItems));
+            localStorage.setItem('pendingItems', JSON.stringify(pendingItems));
             
             showNotification('Verificação guardada com sucesso!');
             closeVerificationModal();
             updateHistoryList();
+            updatePendingList();
             updateStats();
         }
         
-        // Salvar como pendente (MODIFICADO para aceitar campos incompletos)
+        // Salvar como pendente (aceita campos incompletos)
         function saveAsPending() {
             const reference = itemReference.value.trim();
-            const notes = itemNotes.value.trim();
+            const notesText = itemNotes.value.trim();
             
             if (!reference) {
                 showNotification('Por favor, preencha a referência do artigo.');
@@ -1465,9 +1584,9 @@
                 }
                 
                 newItem = {
-                    id: Date.now(),
+                    id: editingPendingItemId !== null ? editingPendingItemId : Date.now(),
                     reference,
-                    notes,
+                    notes: notesText,
                     date: new Date().toLocaleString('pt-PT'),
                     status: 'pending',
                     lotes: lotes.length > 0 ? lotes : undefined
@@ -1478,14 +1597,19 @@
                 const quantityStock = itemQuantityStock.value || '0';
                 
                 newItem = {
-                    id: Date.now(),
+                    id: editingPendingItemId !== null ? editingPendingItemId : Date.now(),
                     reference,
                     quantityPc: parseInt(quantityPc),
                     quantityStock: parseInt(quantityStock),
-                    notes,
+                    notes: notesText,
                     date: new Date().toLocaleString('pt-PT'),
                     status: 'pending'
                 };
+            }
+            
+            // Se estávamos editando, remover o item anterior
+            if (editingPendingItemId !== null) {
+                pendingItems = pendingItems.filter(item => item.id !== editingPendingItemId);
             }
             
             pendingItems.unshift(newItem);
@@ -1495,6 +1619,7 @@
             closeVerificationModal();
             updatePendingList();
             updateStats();
+            editingPendingItemId = null;
         }
         
         // Editar item pendente
@@ -1541,14 +1666,11 @@
                 
                 itemNotes.value = item.notes || '';
                 
-                // Remover o item da lista de pendentes
-                pendingItems.splice(itemIndex, 1);
-                localStorage.setItem('pendingItems', JSON.stringify(pendingItems));
+                // Guardar o ID do item que está sendo editado
+                editingPendingItemId = id;
                 
                 // Abrir o modal
                 openVerificationModal();
-                updatePendingList();
-                updateStats();
             }
         }
         
@@ -1797,7 +1919,7 @@
             removeModeBtn.style.opacity = removeMode ? '1' : '0.7';
         }
         
-        // Selecionar/desselecionar item (MODIFICADO para guardar no localStorage)
+        // Selecionar/desselecionar item
         function toggleSelectItem(id, isChecked) {
             if (isChecked) {
                 if (!selectedItems.includes(id)) {
@@ -1820,7 +1942,7 @@
             confirmRemoveHistoryModal.style.display = 'flex';
         }
         
-        // Confirmar remoção de item do histórico (MODIFICADO para remover também dos selecionados)
+        // Confirmar remoção de item do histórico
         function removeHistoryItemConfirmed() {
             if (itemToRemove) {
                 completedItems = completedItems.filter(item => item.id !== itemToRemove);
@@ -1874,6 +1996,12 @@
             updateHistoryList();
         }
         
+        // Limpar filtro e fechar modal
+        function clearFilterAndClose() {
+            clearFilter();
+            closeFilterModal();
+        }
+        
         // Limpar filtro
         function clearFilter() {
             currentFilter = {
@@ -1891,7 +2019,6 @@
             removeMode = false;
             updateHistoryList();
             updateButtonStates();
-            closeFilterModal();
         }
         
         // Mostrar view inicial
@@ -1943,6 +2070,7 @@
                 currentNoteId = note.id;
                 noteTitle.value = note.title;
                 noteContent.value = note.content;
+                noteType.value = note.type || "Outro";
                 notesModalTitle.textContent = 'Editar Anotação';
                 deleteNoteBtn.style.display = 'block';
             } else {
@@ -1950,6 +2078,7 @@
                 currentNoteId = null;
                 noteTitle.value = '';
                 noteContent.value = '';
+                noteType.value = "Outro";
                 notesModalTitle.textContent = 'Nova Anotação';
                 deleteNoteBtn.style.display = 'none';
             }
@@ -1965,6 +2094,7 @@
         function saveNote() {
             const title = noteTitle.value.trim();
             const content = noteContent.value.trim();
+            const type = noteType.value;
             
             if (!title || !content) {
                 showNotification('Por favor, preencha o título e o conteúdo.');
@@ -1979,6 +2109,7 @@
                         id: currentNoteId, 
                         title, 
                         content,
+                        type,
                         date: notes[noteIndex].date // Mantém a data original
                     };
                 }
@@ -1988,6 +2119,7 @@
                     id: Date.now(),
                     title,
                     content,
+                    type,
                     date: new Date().toLocaleString('pt-PT')
                 };
                 notes.unshift(newNote);
@@ -2014,9 +2146,79 @@
             }
         }
         
+        // Pesquisar anotações
+        function searchNotes() {
+            currentNotesFilter.text = notesSearchInput.value.trim();
+            updateNotesList();
+        }
+        
+        // Abrir modal de filtro de anotações
+        function openNotesFilterModal() {
+            notesFilterModal.style.display = 'flex';
+        }
+        
+        // Fechar modal de filtro de anotações
+        function closeNotesFilterModal() {
+            notesFilterModal.style.display = 'none';
+        }
+        
+        // Aplicar filtro de anotações
+        function applyNotesFilter() {
+            currentNotesFilter.startDate = new Date(notesStartDate.value);
+            currentNotesFilter.endDate = new Date(notesEndDate.value);
+            currentNotesFilter.type = notesFilterType.value;
+            
+            // Ajustar para incluir todo o dia final
+            if (currentNotesFilter.endDate) {
+                currentNotesFilter.endDate.setHours(23, 59, 59, 999);
+            }
+            
+            closeNotesFilterModal();
+            updateNotesList();
+        }
+        
+        // Limpar filtro de anotações
+        function clearNotesFilter() {
+            currentNotesFilter = {
+                text: '',
+                startDate: null,
+                endDate: null,
+                type: ''
+            };
+            notesSearchInput.value = '';
+            const today = new Date().toISOString().split('T')[0];
+            notesStartDate.value = today;
+            notesEndDate.value = today;
+            notesFilterType.value = '';
+            updateNotesList();
+            closeNotesFilterModal();
+        }
+        
         // Atualizar lista de anotações
         function updateNotesList() {
-            if (notes.length === 0) {
+            let filteredNotes = notes;
+            
+            // Aplicar filtro de texto
+            if (currentNotesFilter.text) {
+                filteredNotes = filteredNotes.filter(note => 
+                    note.title.toLowerCase().includes(currentNotesFilter.text.toLowerCase())
+                );
+            }
+            
+            // Aplicar filtro de data
+            if (currentNotesFilter.startDate && currentNotesFilter.endDate) {
+                filteredNotes = filteredNotes.filter(note => {
+                    const noteDate = new Date(note.date.split(',')[0].split('/').reverse().join('-'));
+                    return noteDate >= currentNotesFilter.startDate && noteDate <= currentNotesFilter.endDate;
+                });
+            }
+            
+            // Aplicar filtro de tipo
+            if (currentNotesFilter.type) {
+                filteredNotes = filteredNotes.filter(note => note.type === currentNotesFilter.type);
+            }
+            
+            if (filteredNotes.length === 0) {
                 notesList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-sticky-note" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
@@ -2026,11 +2228,12 @@
                 return;
             }
             
-            notesList.innerHTML = notes.map(note => `
+            notesList.innerHTML = filteredNotes.map(note => `
                 <div class="note-item">
                     <div class="item-info">
                         <div class="note-title">${note.title}</div>
                         <div class="note-date">${note.date}</div>
+                        ${note.type ? `<div class="note-type">Tipo: ${note.type}</div>` : ''}
                     </div>
                     <div class="item-actions">
                         <button class="action-btn edit" onclick="openNotesModal(${JSON.stringify(note).replace(/"/g, '&quot;')})">

@@ -17,7 +17,7 @@
         
         body {
             background: #f5f5f5;
-            color: #333;
+            color: 333;
             min-height: 100vh;
             overflow: hidden;
         }
@@ -1092,6 +1092,17 @@
     </div>
     
     <!-- Confirmation Modals -->
+    <div class="confirmation-modal" id="confirmRemovePendingModal">
+        <div class="confirmation-content">
+            <h2 class="modal-title">Confirmar Remoção</h2>
+            <p class="confirmation-message">Tem a certeza que deseja remover esta verificação em espera?</p>
+            <div class="confirmation-actions">
+                <button class="confirmation-btn cancel-btn" id="cancelRemovePending">Cancelar</button>
+                <button class="confirmation-btn confirm-btn" id="confirmRemovePending">Remover</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="confirmation-modal" id="confirmRemoveHistoryModal">
         <div class="confirmation-content">
             <h2 class="modal-title">Confirmar Remoção</h2>
@@ -1131,6 +1142,7 @@
         let selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
         let itemToRemove = null;
         let noteToRemove = null;
+        let pendingItemToRemove = null;
         
         // Elementos DOM
         const homeView = document.getElementById('home-view');
@@ -1172,8 +1184,11 @@
         const addLoteBtn = document.getElementById('addLoteBtn');
         const standardQuantities = document.getElementById('standardQuantities');
         const standardQuantities2 = document.getElementById('standardQuantities2');
+        const confirmRemovePendingModal = document.getElementById('confirmRemovePendingModal');
         const confirmRemoveHistoryModal = document.getElementById('confirmRemoveHistoryModal');
         const confirmRemoveNoteModal = document.getElementById('confirmRemoveNoteModal');
+        const confirmRemovePending = document.getElementById('confirmRemovePending');
+        const cancelRemovePending = document.getElementById('cancelRemovePending');
         const confirmRemoveHistory = document.getElementById('confirmRemoveHistory');
         const cancelRemoveHistory = document.getElementById('cancelRemoveHistory');
         const confirmRemoveNote = document.getElementById('confirmRemoveNote');
@@ -1212,6 +1227,7 @@
                     verificationModal.style.display = 'none';
                     notesModal.style.display = 'none';
                     filterModal.style.display = 'none';
+                    confirmRemovePendingModal.style.display = 'none';
                     confirmRemoveHistoryModal.style.display = 'none';
                     confirmRemoveNoteModal.style.display = 'none';
                 });
@@ -1238,6 +1254,10 @@
             });
             hasLotesCheckbox.addEventListener('change', toggleLotesContainer);
             addLoteBtn.addEventListener('click', addLoteRow);
+            confirmRemovePending.addEventListener('click', removePendingItemConfirmed);
+            cancelRemovePending.addEventListener('click', () => {
+                confirmRemovePendingModal.style.display = 'none';
+            });
             confirmRemoveHistory.addEventListener('click', removeHistoryItemConfirmed);
             cancelRemoveHistory.addEventListener('click', () => {
                 confirmRemoveHistoryModal.style.display = 'none';
@@ -1252,6 +1272,7 @@
                 if (e.target === verificationModal) closeVerificationModal();
                 if (e.target === notesModal) closeNotesModal();
                 if (e.target === filterModal) closeFilterModal();
+                if (e.target === confirmRemovePendingModal) confirmRemovePendingModal.style.display = 'none';
                 if (e.target === confirmRemoveHistoryModal) confirmRemoveHistoryModal.style.display = 'none';
                 if (e.target === confirmRemoveNoteModal) confirmRemoveNoteModal.style.display = 'none';
             });
@@ -1533,19 +1554,20 @@
         
         // Remover item pendente
         function removePendingItem(id) {
-            itemToRemove = id;
-            confirmRemoveHistoryModal.style.display = 'flex';
+            pendingItemToRemove = id;
+            confirmRemovePendingModal.style.display = 'flex';
         }
         
-        // Confirmar remoção de item do histórico
-        function removeHistoryItemConfirmed() {
-            if (itemToRemove) {
-                pendingItems = pendingItems.filter(item => item.id !== itemToRemove);
+        // Confirmar remoção de item pendente
+        function removePendingItemConfirmed() {
+            if (pendingItemToRemove) {
+                pendingItems = pendingItems.filter(item => item.id !== pendingItemToRemove);
                 localStorage.setItem('pendingItems', JSON.stringify(pendingItems));
                 updatePendingList();
                 updateStats();
-                confirmRemoveHistoryModal.style.display = 'none';
-                itemToRemove = null;
+                confirmRemovePendingModal.style.display = 'none';
+                pendingItemToRemove = null;
+                showNotification('Verificação em espera removida!');
             }
         }
         
@@ -1812,6 +1834,7 @@
                 updateStats();
                 confirmRemoveHistoryModal.style.display = 'none';
                 itemToRemove = null;
+                showNotification('Item do histórico removido!');
             }
         }
         

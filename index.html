@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificador de Stocks</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#3498db">
+    <!-- Biblioteca para pull-to-refresh -->
+    <script src="https://unpkg.com/pulltorefreshjs@0.1.22/dist/index.umd.js"></script>
     <style>
         * {
             margin: 0;
@@ -40,6 +40,9 @@
             margin-top: 0; /* Removida margem negativa */
             margin-bottom: 0; /* Removida margem negativa */
             position: relative; /* Para posicionamento interno */
+            /* Permitir scroll para o pull-to-refresh */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         
         header {
@@ -863,6 +866,40 @@
             border-radius: 4px;
         }
         
+        /* Estilos para o pull-to-refresh */
+        .ptr--ptr {
+            box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.12);
+            pointer-events: none;
+            font-size: 0.85em;
+            font-weight: bold;
+            top: 0;
+            height: 50px;
+            transition: height 0.3s, min-height 0.3s;
+            text-align: center;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .ptr--box {
+            margin-bottom: 15px;
+        }
+
+        .ptr--text {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .ptr--icon {
+            color: #3498db;
+            order: 1;
+            flex-basis: 100%;
+            margin-bottom: 5px;
+        }
+        
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -870,7 +907,8 @@
             }
 
             .container {
-                height: 95vh; /* Ajusta altura para mobile */
+                height: 80vh; /* Ajusta altura para mobile */
+                min-height: auto; /* Remove altura mínima fixa */
                 border-radius: 12px;
                 margin-top: -100px;
             }
@@ -920,6 +958,11 @@
             .notification.show {
                 top: 30px;
             }
+            
+            /* Ajustes para o pull-to-refresh em mobile */
+            .ptr--ptr {
+                height: 60px;
+            }
         }
     </style>
 </head>
@@ -930,7 +973,7 @@
         <span id="notificationMessage"></span>
     </div>
 
-    <div class="container">
+    <div class="container" id="main-container">
         <header>
             <h1>Verificador de Stocks</h1>
         </header>
@@ -1251,6 +1294,7 @@
         const cancelRemoveNote = document.getElementById('cancelRemoveNote');
         const notification = document.getElementById('notification');
         const notificationMessage = document.getElementById('notificationMessage');
+        const mainContainer = document.getElementById('main-container');
         
         // Elementos de estatísticas
         const completedCountEl = document.getElementById('completedCount');
@@ -1274,6 +1318,9 @@
             updateHistoryList();
             updateNotesList();
             updateStats();
+            
+            // Inicializar pull-to-refresh
+            initPullToRefresh();
             
             // Event Listeners
             checkItemBtn.addEventListener('click', openVerificationModal);
@@ -1325,6 +1372,41 @@
                 if (e.target === filterModal) closeFilterModal();
                 if (e.target === confirmRemoveHistoryModal) confirmRemoveHistoryModal.style.display = 'none';
                 if (e.target === confirmRemoveNoteModal) confirmRemoveNoteModal.style.display = 'none';
+            });
+        }
+        
+        // Inicializar pull-to-refresh
+        function initPullToRefresh() {
+            PullToRefresh.init({
+                mainElement: '#main-container',
+                onRefresh: function() {
+                    return new Promise(function(resolve) {
+                        // Atualizar os dados com base na view atual
+                        if (homeView.style.display === 'flex') {
+                            updatePendingList();
+                            updateStats();
+                            showNotification('Lista de pendentes atualizada');
+                        } else if (historyView.style.display === 'block') {
+                            updateHistoryList();
+                            showNotification('Histórico atualizado');
+                        } else if (notesView.style.display === 'block') {
+                            updateNotesList();
+                            showNotification('Notas atualizadas');
+                        }
+                        
+                        // Resolver a promise após um pequeno delay
+                        setTimeout(function() {
+                            resolve();
+                        }, 1000);
+                    });
+                },
+                instructionsPullToRefresh: 'Puxe para baixo para atualizar',
+                instructionsReleaseToRefresh: 'Solte para atualizar',
+                instructionsRefreshing: 'A atualizar...',
+                distIgnore: 70,
+                distThreshold: 70,
+                distMax: 90,
+                resistance: 2.5
             });
         }
         
@@ -1793,7 +1875,7 @@
                         ` : ''}
                         <div style="flex: 1;">
                             <div class="history-header">
-                                <span class="history-ref">${item.reference}</span>
+                                <span class="history-ref">${item.reference</span>
                                 <span class="history-date">${item.date}</span>
                             </div>
                             <div class="history-details">
@@ -2104,5 +2186,3 @@
     </script>
 </body>
 </html>
-
-

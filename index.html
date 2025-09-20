@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificador de Stocks</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2196F3">
     <style>
         * {
             margin: 0;
@@ -17,7 +15,7 @@
         
         body {
             background: #f5f5f5;
-            color: 333;
+            color: #333;
             min-height: 100vh;
             overflow: hidden;
         }
@@ -48,6 +46,7 @@
             justify-content: center;
             gap: 15px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
         .check-button {
@@ -88,6 +87,14 @@
         
         .check-button.success:hover {
             background: #43A047;
+        }
+        
+        .check-button.warning {
+            background: #FF9800;
+        }
+        
+        .check-button.warning:hover {
+            background: #F57C00;
         }
         
         .check-button i {
@@ -312,6 +319,7 @@
             display: flex;
             align-items: center;
             transition: all 0.3s;
+            cursor: pointer;
         }
         
         .history-header {
@@ -359,6 +367,11 @@
         .negative {
             background-color: #FFEBEE;
             color: #C62828;
+        }
+        
+        .neutral {
+            background-color: #E3F2FD;
+            color: #1565C0;
         }
         
         .history-notes {
@@ -573,17 +586,47 @@
             padding: 10px;
         }
         
-        .lote-row {
+        .lote-header {
             display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
+            justify-content: space-between;
             align-items: center;
+            margin-bottom: 8px;
+            cursor: pointer;
         }
         
-        .lote-row input {
+        .lote-name-container {
             flex: 1;
-            padding: 8px;
-            font-size: 14px;
+        }
+        
+        .lote-name-container input {
+            margin-bottom: 0;
+        }
+        
+        .lote-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #757575;
+            padding: 5px;
+            margin-left: 8px;
+        }
+        
+        .lote-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .lote-details.collapsed {
+            display: none;
+        }
+        
+        .lote-quantities {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         
         .add-lote-btn {
@@ -607,6 +650,7 @@
             border-radius: 5px;
             padding: 8px;
             cursor: pointer;
+            align-self: center;
         }
         
         /* Notification */
@@ -702,6 +746,7 @@
         .date-input label {
             font-size: 0.8rem;
             margin-bottom: 5px;
+            display: block;
         }
         
         .date-input input {
@@ -716,6 +761,7 @@
         .filter-type label {
             font-size: 0.8rem;
             margin-bottom: 5px;
+            display: block;
         }
         
         .filter-type select {
@@ -835,8 +881,8 @@
                 flex-direction: column;
             }
             
-            .lote-row {
-                flex-direction: column;
+            .lote-details {
+                grid-template-columns: 1fr;
             }
             
             .history-header, .history-details {
@@ -1005,11 +1051,22 @@
             </div>
             
             <div class="lotes-container" id="lotesContainer">
-                <div class="lote-row">
-                    <input type="text" placeholder="Nome do Lote" class="lote-name">
-                    <input type="number" placeholder="PC" class="lote-pc">
-                    <input type="number" placeholder="Stock" class="lote-stock">
-                    <button class="remove-lote-btn">&times;</button>
+                <div class="lote-item">
+                    <div class="lote-header">
+                        <div class="lote-name-container">
+                            <input type="text" placeholder="Nome do Lote" class="lote-name">
+                        </div>
+                        <button class="lote-toggle">−</button>
+                    </div>
+                    <div class="lote-details">
+                        <div class="lote-quantities">
+                            <input type="number" placeholder="PC" class="lote-pc">
+                        </div>
+                        <div class="lote-quantities">
+                            <input type="number" placeholder="Stock" class="lote-stock">
+                        </div>
+                        <button class="remove-lote-btn">&times;</button>
+                    </div>
                 </div>
                 <button class="add-lote-btn" id="addLoteBtn">
                     <i class="fas fa-plus"></i> Adicionar Lote
@@ -1096,7 +1153,7 @@
             <div class="date-inputs">
                 <div class="form-group date-input">
                     <label for="startDate">Data Início</label>
-                    <input type="date" id="startDate">
+                    <input type="date" id="startDate" value="2025-01-01">
                 </div>
                 
                 <div class="form-group date-input">
@@ -1135,7 +1192,7 @@
             <div class="date-inputs">
                 <div class="form-group date-input">
                     <label for="notesStartDate">Data Início</label>
-                    <input type="date" id="notesStartDate">
+                    <input type="date" id="notesStartDate" value="2025-01-01">
                 </div>
                 
                 <div class="form-group date-input">
@@ -1301,9 +1358,9 @@
         function initApp() {
             // Definir datas padrão para o filtro
             const today = new Date().toISOString().split('T')[0];
-            startDateInput.value = today;
+            startDateInput.value = '2025-01-01';
             endDateInput.value = today;
-            notesStartDate.value = today;
+            notesStartDate.value = '2025-01-01';
             notesEndDate.value = today;
             
             updatePendingList();
@@ -1370,7 +1427,7 @@
                 confirmRemoveNoteModal.style.display = 'none';
             });
             
-            // Novos event listeners para funcionalidades de anotações
+            // Event listeners para funcionalidades de anotações
             notesSearchBtn.addEventListener('click', searchNotes);
             notesFilterBtn.addEventListener('click', openNotesFilterModal);
             applyNotesFilterBtn.addEventListener('click', applyNotesFilter);
@@ -1386,6 +1443,9 @@
                 if (e.target === confirmRemoveHistoryModal) confirmRemoveHistoryModal.style.display = 'none';
                 if (e.target === confirmRemoveNoteModal) confirmRemoveNoteModal.style.display = 'none';
             });
+            
+            // Inicializar toggle dos lotes
+            initToggles();
         }
         
         // Abrir modal de verificação
@@ -1413,16 +1473,20 @@
             standardQuantities2.style.display = 'block';
             
             // Remover todos os lotes exceto o primeiro
-            const loteRows = lotesContainer.querySelectorAll('.lote-row');
-            for (let i = 1; i < loteRows.length; i++) {
-                loteRows[i].remove();
+            const loteItems = lotesContainer.querySelectorAll('.lote-item');
+            for (let i = 1; i < loteItems.length; i++) {
+                loteItems[i].remove();
             }
             
             // Limpar o primeiro lote
-            const firstLote = loteRows[0];
+            const firstLote = loteItems[0];
             firstLote.querySelector('.lote-name').value = '';
             firstLote.querySelector('.lote-pc').value = '';
             firstLote.querySelector('.lote-stock').value = '';
+            
+            // Expandir o primeiro lote
+            firstLote.querySelector('.lote-details').classList.remove('collapsed');
+            firstLote.querySelector('.lote-toggle').textContent = '−';
         }
         
         // Alternar visibilidade do container de lotes
@@ -1438,22 +1502,51 @@
             }
         }
         
+        // Inicializar toggles dos lotes
+        function initToggles() {
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('lote-toggle')) {
+                    const loteDetails = e.target.closest('.lote-item').querySelector('.lote-details');
+                    loteDetails.classList.toggle('collapsed');
+                    e.target.textContent = loteDetails.classList.contains('collapsed') ? '+' : '−';
+                }
+                
+                if (e.target.classList.contains('remove-lote-btn')) {
+                    const loteItem = e.target.closest('.lote-item');
+                    if (lotesContainer.querySelectorAll('.lote-item').length > 1) {
+                        loteItem.remove();
+                    } else {
+                        // Limpar o primeiro lote em vez de remover
+                        loteItem.querySelector('.lote-name').value = '';
+                        loteItem.querySelector('.lote-pc').value = '';
+                        loteItem.querySelector('.lote-stock').value = '';
+                    }
+                }
+            });
+        }
+        
         // Adicionar linha de lote
         function addLoteRow() {
-            const loteRow = document.createElement('div');
-            loteRow.className = 'lote-row';
-            loteRow.innerHTML = `
-                <input type="text" placeholder="Nome do Lote" class="lote-name">
-                <input type="number" placeholder="PC" class="lote-pc">
-                <input type="number" placeholder="Stock" class="lote-stock">
-                <button class="remove-lote-btn">&times;</button>
+            const loteItem = document.createElement('div');
+            loteItem.className = 'lote-item';
+            loteItem.innerHTML = `
+                <div class="lote-header">
+                    <div class="lote-name-container">
+                        <input type="text" placeholder="Nome do Lote" class="lote-name">
+                    </div>
+                    <button class="lote-toggle">−</button>
+                </div>
+                <div class="lote-details">
+                    <div class="lote-quantities">
+                        <input type="number" placeholder="PC" class="lote-pc">
+                    </div>
+                    <div class="lote-quantities">
+                        <input type="number" placeholder="Stock" class="lote-stock">
+                    </div>
+                    <button class="remove-lote-btn">&times;</button>
+                </div>
             `;
-            lotesContainer.insertBefore(loteRow, addLoteBtn);
-            
-            // Adicionar evento ao botão de remover
-            loteRow.querySelector('.remove-lote-btn').addEventListener('click', function() {
-                loteRow.remove();
-            });
+            lotesContainer.insertBefore(loteItem, addLoteBtn);
         }
         
         // Mostrar notificação
@@ -1480,14 +1573,14 @@
             
             if (hasLotesCheckbox.checked) {
                 // Validar lotes
-                const loteRows = lotesContainer.querySelectorAll('.lote-row');
+                const loteItems = lotesContainer.querySelectorAll('.lote-item');
                 const lotes = [];
                 let isValid = true;
                 
-                for (const row of loteRows) {
-                    const name = row.querySelector('.lote-name').value.trim();
-                    const pc = row.querySelector('.lote-pc').value;
-                    const stock = row.querySelector('.lote-stock').value;
+                for (const item of loteItems) {
+                    const name = item.querySelector('.lote-name').value.trim();
+                    const pc = item.querySelector('.lote-pc').value;
+                    const stock = item.querySelector('.lote-stock').value;
                     
                     if (!name || !pc || !stock) {
                         isValid = false;
@@ -1564,21 +1657,21 @@
             let newItem;
             
             if (hasLotesCheckbox.checked) {
-                // Coletar lotes - apenas os completos serão salvos
-                const loteRows = lotesContainer.querySelectorAll('.lote-row');
+                // Coletar lotes - aceita campos incompletos
+                const loteItems = lotesContainer.querySelectorAll('.lote-item');
                 const lotes = [];
                 
-                for (const row of loteRows) {
-                    const name = row.querySelector('.lote-name').value.trim();
-                    const pc = row.querySelector('.lote-pc').value;
-                    const stock = row.querySelector('.lote-stock').value;
+                for (const item of loteItems) {
+                    const name = item.querySelector('.lote-name').value.trim();
+                    const pc = item.querySelector('.lote-pc').value;
+                    const stock = item.querySelector('.lote-stock').value;
                     
-                    // Apenas adiciona lote se todos os campos estiverem preenchidos
-                    if (name && pc && stock) {
+                    // Aceita lotes com nome preenchido, mesmo que quantidades estejam vazias
+                    if (name) {
                         lotes.push({
                             name,
-                            pc: parseInt(pc),
-                            stock: parseInt(stock)
+                            pc: pc ? parseInt(pc) : 0,
+                            stock: stock ? parseInt(stock) : 0
                         });
                     }
                 }
@@ -1637,27 +1730,33 @@
                     toggleLotesContainer();
                     
                     // Remover todos os lotes existentes
-                    const loteRows = lotesContainer.querySelectorAll('.lote-row');
-                    for (let i = 0; i < loteRows.length; i++) {
-                        loteRows[i].remove();
+                    const loteItems = lotesContainer.querySelectorAll('.lote-item');
+                    for (let i = 0; i < loteItems.length; i++) {
+                        loteItems[i].remove();
                     }
                     
                     // Adicionar lotes do item
                     for (const lote of item.lotes) {
-                        const loteRow = document.createElement('div');
-                        loteRow.className = 'lote-row';
-                        loteRow.innerHTML = `
-                            <input type="text" placeholder="Nome do Lote" class="lote-name" value="${lote.name}">
-                            <input type="number" placeholder="PC" class="lote-pc" value="${lote.pc}">
-                            <input type="number" placeholder="Stock" class="lote-stock" value="${lote.stock}">
-                            <button class="remove-lote-btn">&times;</button>
+                        const loteItem = document.createElement('div');
+                        loteItem.className = 'lote-item';
+                        loteItem.innerHTML = `
+                            <div class="lote-header">
+                                <div class="lote-name-container">
+                                    <input type="text" placeholder="Nome do Lote" class="lote-name" value="${lote.name}">
+                                </div>
+                                <button class="lote-toggle">−</button>
+                            </div>
+                            <div class="lote-details">
+                                <div class="lote-quantities">
+                                    <input type="number" placeholder="PC" class="lote-pc" value="${lote.pc}">
+                                </div>
+                                <div class="lote-quantities">
+                                    <input type="number" placeholder="Stock" class="lote-stock" value="${lote.stock}">
+                                </div>
+                                <button class="remove-lote-btn">&times;</button>
+                            </div>
                         `;
-                        lotesContainer.insertBefore(loteRow, addLoteBtn);
-                        
-                        // Adicionar evento ao botão de remover
-                        loteRow.querySelector('.remove-lote-btn').addEventListener('click', function() {
-                            loteRow.remove();
-                        });
+                        lotesContainer.insertBefore(loteItem, addLoteBtn);
                     }
                 } else {
                     itemQuantityPc.value = item.quantityPc;
@@ -1705,7 +1804,7 @@
                 return;
             }
             
-            pendingList.innerHTML = pendingItems.map(item => {
+            let pendingHTML = pendingItems.map(item => {
                 let details = '';
                 
                 if (item.lotes) {
@@ -1734,6 +1833,8 @@
                 </div>
                 `;
             }).join('');
+            
+            pendingList.innerHTML = pendingHTML;
         }
         
         // Atualizar histórico
@@ -1767,14 +1868,14 @@
             if (filteredItems.length === 0) {
                 historyList.innerHTML = `
                     <div class="empty-state">
-                        <i class="fas fa-history" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
-                        <p>Nenhuma verificação no histórico</p>
+                    <i class="fas fa-history" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                    <p>Nenhuma verificação no histórico</p>
                     </div>
                 `;
                 return;
             }
             
-            historyList.innerHTML = filteredItems.map(item => {
+            let historyHTML = filteredItems.map(item => {
                 const isSelected = selectedItems.includes(item.id);
                 let content = '';
                 
@@ -1889,6 +1990,8 @@
                 
                 return content;
             }).join('');
+            
+            historyList.innerHTML = historyHTML;
             
             // Mostrar ou esconder botões de remoção baseado no modo
             const removeButtons = historyList.querySelectorAll('.history-remove-btn');
@@ -2011,9 +2114,8 @@
                 type: ''
             };
             searchInput.value = '';
-            const today = new Date().toISOString().split('T')[0];
-            startDateInput.value = today;
-            endDateInput.value = today;
+            startDateInput.value = '2025-01-01';
+            endDateInput.value = new Date().toISOString().split('T')[0];
             filterType.value = '';
             checklistMode = false;
             removeMode = false;
@@ -2119,142 +2221,141 @@
                     id: Date.now(),
                     title,
                     content,
-                    type,
-                    date: new Date().toLocaleString('pt-PT')
-                };
-                notes.unshift(newNote);
-            }
-            
-            localStorage.setItem('notes', JSON.stringify(notes));
-            updateNotesList();
-            updateStats();
-            closeNotesModal();
-            showNotification('Anotação guardada com sucesso!');
-        }
-        
-        // Apagar anotação
-        function deleteNoteConfirmed() {
-            if (noteToRemove) {
-                notes = notes.filter(note => note.id !== noteToRemove);
+                        type,
+                        date: new Date().toLocaleString('pt-PT')
+                    };
+                    notes.unshift(newNote);
+                }
+                
                 localStorage.setItem('notes', JSON.stringify(notes));
                 updateNotesList();
                 updateStats();
                 closeNotesModal();
-                confirmRemoveNoteModal.style.display = 'none';
-                noteToRemove = null;
-                showNotification('Anotação removida com sucesso!');
-            }
-        }
-        
-        // Pesquisar anotações
-        function searchNotes() {
-            currentNotesFilter.text = notesSearchInput.value.trim();
-            updateNotesList();
-        }
-        
-        // Abrir modal de filtro de anotações
-        function openNotesFilterModal() {
-            notesFilterModal.style.display = 'flex';
-        }
-        
-        // Fechar modal de filtro de anotações
-        function closeNotesFilterModal() {
-            notesFilterModal.style.display = 'none';
-        }
-        
-        // Aplicar filtro de anotações
-        function applyNotesFilter() {
-            currentNotesFilter.startDate = new Date(notesStartDate.value);
-            currentNotesFilter.endDate = new Date(notesEndDate.value);
-            currentNotesFilter.type = notesFilterType.value;
-            
-            // Ajustar para incluir todo o dia final
-            if (currentNotesFilter.endDate) {
-                currentNotesFilter.endDate.setHours(23, 59, 59, 999);
+                showNotification('Anotação guardada com sucesso!');
             }
             
-            closeNotesFilterModal();
-            updateNotesList();
-        }
-        
-        // Limpar filtro de anotações
-        function clearNotesFilter() {
-            currentNotesFilter = {
-                text: '',
-                startDate: null,
-                endDate: null,
-                type: ''
-            };
-            notesSearchInput.value = '';
-            const today = new Date().toISOString().split('T')[0];
-            notesStartDate.value = today;
-            notesEndDate.value = today;
-            notesFilterType.value = '';
-            updateNotesList();
-            closeNotesFilterModal();
-        }
-        
-        // Atualizar lista de anotações
-        function updateNotesList() {
-            let filteredNotes = notes;
-            
-            // Aplicar filtro de texto
-            if (currentNotesFilter.text) {
-                filteredNotes = filteredNotes.filter(note => 
-                    note.title.toLowerCase().includes(currentNotesFilter.text.toLowerCase())
-                );
+            // Apagar anotação
+            function deleteNoteConfirmed() {
+                if (noteToRemove) {
+                    notes = notes.filter(note => note.id !== noteToRemove);
+                    localStorage.setItem('notes', JSON.stringify(notes));
+                    updateNotesList();
+                    updateStats();
+                    closeNotesModal();
+                    confirmRemoveNoteModal.style.display = 'none';
+                    noteToRemove = null;
+                    showNotification('Anotação removida com sucesso!');
+                }
             }
             
-            // Aplicar filtro de data
-            if (currentNotesFilter.startDate && currentNotesFilter.endDate) {
-                filteredNotes = filteredNotes.filter(note => {
-                    const noteDate = new Date(note.date.split(',')[0].split('/').reverse().join('-'));
-                    return noteDate >= currentNotesFilter.startDate && noteDate <= currentNotesFilter.endDate;
+            // Pesquisar anotações
+            function searchNotes() {
+                currentNotesFilter.text = notesSearchInput.value.trim();
+                updateNotesList();
+            }
+            
+            // Abrir modal de filtro de anotações
+            function openNotesFilterModal() {
+                notesFilterModal.style.display = 'flex';
+            }
+            
+            // Fechar modal de filtro de anotações
+            function closeNotesFilterModal() {
+                notesFilterModal.style.display = 'none';
+            }
+            
+            // Aplicar filtro de anotações
+            function applyNotesFilter() {
+                currentNotesFilter.startDate = new Date(notesStartDate.value);
+                currentNotesFilter.endDate = new Date(notesEndDate.value);
+                currentNotesFilter.type = notesFilterType.value;
+                
+                // Ajustar para incluir todo o dia final
+                if (currentNotesFilter.endDate) {
+                    currentNotesFilter.endDate.setHours(23, 59, 59, 999);
+                }
+                
+                closeNotesFilterModal();
+                updateNotesList();
+            }
+            
+            // Limpar filtro de anotações
+            function clearNotesFilter() {
+                currentNotesFilter = {
+                    text: '',
+                    startDate: null,
+                    endDate: null,
+                    type: ''
+                };
+                notesSearchInput.value = '';
+                notesStartDate.value = '2025-01-01';
+                notesEndDate.value = new Date().toISOString().split('T')[0];
+                notesFilterType.value = '';
+                updateNotesList();
+                closeNotesFilterModal();
+            }
+            
+            // Atualizar lista de anotações
+            function updateNotesList() {
+                let filteredNotes = notes;
+                
+                // Aplicar filtro de texto
+                if (currentNotesFilter.text) {
+                    filteredNotes = filteredNotes.filter(note => 
+                        note.title.toLowerCase().includes(currentNotesFilter.text.toLowerCase())
+                    );
+                }
+                
+                // Aplicar filtro de data
+                if (currentNotesFilter.startDate && currentNotesFilter.endDate) {
+                    filteredNotes = filteredNotes.filter(note => {
+                        const noteDate = new Date(note.date.split(',')[0].split('/').reverse().join('-'));
+                        return noteDate >= currentNotesFilter.startDate && noteDate <= currentNotesFilter.endDate;
+                    });
+                }
+                
+                // Aplicar filtro de tipo
+                if (currentNotesFilter.type) {
+                    filteredNotes = filteredNotes.filter(note => note.type === currentNotesFilter.type);
+                }
+                
+                if (filteredNotes.length === 0) {
+                    notesList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-sticky-note" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                            <p>Nenhuma anotação</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                notesList.innerHTML = filteredNotes.map(note => `
+                    <div class="note-item">
+                        <div class="item-info">
+                            <div class="note-title">${note.title}</div>
+                            <div class="note-date">${note.date}</div>
+                            ${note.type ? `<div class="note-type">Tipo: ${note.type}</div>` : ''}
+                        </div>
+                        <div class="item-actions">
+                            <button class="action-btn edit" onclick="openNotesModal(${JSON.stringify(note).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // Iniciar a aplicação quando o DOM estiver pronto
+            document.addEventListener('DOMContentLoaded', initApp);
+        </script>
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('Service Worker registado:', reg))
+                    .catch(err => console.log('Erro no SW:', err));
                 });
             }
-            
-            // Aplicar filtro de tipo
-            if (currentNotesFilter.type) {
-                filteredNotes = filteredNotes.filter(note => note.type === currentNotesFilter.type);
-            }
-            
-            if (filteredNotes.length === 0) {
-                notesList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-sticky-note" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
-                        <p>Nenhuma anotação</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            notesList.innerHTML = filteredNotes.map(note => `
-                <div class="note-item">
-                    <div class="item-info">
-                        <div class="note-title">${note.title}</div>
-                        <div class="note-date">${note.date}</div>
-                        ${note.type ? `<div class="note-type">Tipo: ${note.type}</div>` : ''}
-                    </div>
-                    <div class="item-actions">
-                        <button class="action-btn edit" onclick="openNotesModal(${JSON.stringify(note).replace(/"/g, '&quot;')})">
-                            <i class="fas fa-pencil-alt"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        // Iniciar a aplicação quando o DOM estiver pronto
-        document.addEventListener('DOMContentLoaded', initApp);
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(reg => console.log('Service Worker registado:', reg))
-                .catch(err => console.log('Erro no SW:', err));
-            });
-        }
-    </script>
-</body>
-</html>
+        </script>
+    </body>
+    </html>

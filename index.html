@@ -142,7 +142,7 @@
             font-size: 1.1rem;
         }
         
-        .pending-list, .notes-list {
+        .pending-list, .notes-list, .tasks-list {
             overflow-y: auto;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
@@ -150,7 +150,7 @@
             background: white;
         }
         
-        .pending-item, .note-item {
+        .pending-item, .note-item, .task-item {
             background: #f9f9f9;
             border-radius: 8px;
             padding: 12px;
@@ -239,7 +239,7 @@
         }
         
         /* History View */
-        .history-view, .notes-view {
+        .history-view, .notes-view, .tasks-view, .settings-view {
             display: none;
             padding: 15px;
             overflow-y: auto;
@@ -303,7 +303,7 @@
             background: #9E9E9E;
         }
         
-        .history-list, .notes-list {
+        .history-list, .notes-list, .tasks-list {
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             padding: 10px;
@@ -429,6 +429,92 @@
             color: #2196F3;
             font-size: 0.8rem;
             margin-top: 3px;
+        }
+        
+        /* Task specific styles */
+        .task-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .task-description {
+            color: #757575;
+            font-size: 0.8rem;
+        }
+        
+        .task-date {
+            color: #757575;
+            font-size: 0.7rem;
+            margin-top: 5px;
+        }
+        
+        /* Settings specific styles */
+        .settings-category {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .settings-category h3 {
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .note-type-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: grab;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        
+        .note-type-item:active {
+            cursor: grabbing;
+        }
+        
+        .note-type-item.dragging {
+            opacity: 0.7;
+            background-color: #e3f2fd;
+        }
+        
+        .drag-handle {
+            margin-right: 10px;
+            color: #757575;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        .note-type-name {
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .add-type-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
         }
         
         /* Modal Styles */
@@ -927,6 +1013,10 @@
                     <i class="fas fa-plus"></i>
                     Adicionar Nota
                 </button>
+                <button class="check-button warning" id="addTaskBtn">
+                    <i class="fas fa-plus"></i>
+                    Adicionar Tarefa
+                </button>
             </div>
             
             <div class="pending-section">
@@ -953,6 +1043,10 @@
                     <div class="stat-card">
                         <div class="stat-value" id="notesCount">0</div>
                         <div class="stat-label">Notas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="tasksCount">0</div>
+                        <div class="stat-label">Tarefas</div>
                     </div>
                 </div>
             </div>
@@ -1014,6 +1108,44 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Tasks View -->
+        <div class="tasks-view" id="tasks-view">
+            <h2 class="section-title">Tarefas</h2>
+            
+            <div class="tasks-list" id="tasksList">
+                <div class="empty-state">
+                    <i class="fas fa-tasks" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                    <p>Nenhuma tarefa</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings View -->
+        <div class="settings-view" id="settings-view">
+            <h2 class="section-title">Definições</h2>
+            
+            <div class="settings-category">
+                <h3>Perfil</h3>
+                <div class="form-group">
+                    <label for="userName">Nome</label>
+                    <input type="text" id="userName" placeholder="Seu nome">
+                </div>
+            </div>
+            
+            <div class="settings-category">
+                <h3>Outros</h3>
+                <div class="settings-option" id="noteTypesOption">
+                    <h4>Tipo de Nota</h4>
+                    <div class="note-types-list" id="noteTypesList">
+                        <!-- Lista de tipos de nota será preenchida via JavaScript -->
+                    </div>
+                    <button class="add-type-btn" id="addNoteTypeBtn">
+                        <i class="fas fa-plus"></i> Adicionar Tipo de Nota
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Footer Menu -->
@@ -1029,6 +1161,14 @@
         <button class="menu-btn" id="notesBtn">
             <i class="fas fa-sticky-note"></i>
             <span>Anotações</span>
+        </button>
+        <button class="menu-btn" id="tasksBtn">
+            <i class="fas fa-tasks"></i>
+            <span>Tarefas</span>
+        </button>
+        <button class="menu-btn" id="settingsBtn">
+            <i class="fas fa-cog"></i>
+            <span>Definições</span>
         </button>
     </div>
     
@@ -1119,10 +1259,7 @@
             <div class="form-group">
                 <label for="noteType">Tipo de Nota</label>
                 <select id="noteType">
-                    <option value="Falta Fornecedor">Falta Fornecedor</option>
-                    <option value="Baixa Sistema">Baixa Sistema</option>
-                    <option value="Emprestado">Emprestado</option>
-                    <option value="Outro">Outro</option>
+                    <!-- Opções serão preenchidas dinamicamente com base na ordem dos noteTypes -->
                 </select>
             </div>
             
@@ -1137,6 +1274,56 @@
                 </button>
                 <button class="modal-btn btn-danger" id="deleteNoteBtn">
                     <i class="fas fa-trash"></i> 
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Task Modal -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="taskModalTitle">Nova Tarefa</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="taskTitle">Título</label>
+                <input type="text" id="taskTitle" placeholder="Título da tarefa">
+            </div>
+            
+            <div class="form-group">
+                <label for="taskDescription">Descrição</label>
+                <textarea id="taskDescription" placeholder="Descrição da tarefa" rows="5"></textarea>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn btn-success" id="saveTaskBtn">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+                <button class="modal-btn btn-danger" id="deleteTaskBtn" style="display: none;">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Note Type Modal -->
+    <div class="modal" id="noteTypeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Adicionar Tipo de Nota</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="newNoteType">Tipo de Nota</label>
+                <input type="text" id="newNoteType" placeholder="Ex: Falta Fornecedor">
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn btn-success" id="saveNoteTypeBtn">
+                    <i class="fas fa-save"></i> Guardar
                 </button>
             </div>
         </div>
@@ -1204,11 +1391,7 @@
             <div class="form-group filter-type">
                 <label for="notesFilterType">Tipo</label>
                 <select id="notesFilterType">
-                    <option value="">Todos os tipos</option>
-                    <option value="Falta Fornecedor">Falta Fornecedor</option>
-                    <option value="Baixa Sistema">Baixa Sistema</option>
-                    <option value="Emprestado">Emprestado</option>
-                    <option value="Outro">Outro</option>
+                    <!-- Opções serão preenchidas dinamicamente com base na ordem dos noteTypes -->
                 </select>
             </div>
             
@@ -1254,12 +1437,38 @@
             </div>
         </div>
     </div>
+    
+    <div class="confirmation-modal" id="confirmRemoveTaskModal">
+        <div class="confirmation-content">
+            <h2 class="modal-title">Confirmar Remoção</h2>
+            <p class="confirmation-message">Tem a certeza que deseja apagar esta tarefa?</p>
+            <div class="confirmation-actions">
+                <button class="confirmation-btn cancel-btn" id="cancelRemoveTask">Cancelar</button>
+                <button class="confirmation-btn confirm-btn" id="confirmRemoveTask">Apagar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="confirmation-modal" id="confirmRemoveNoteTypeModal">
+        <div class="confirmation-content">
+            <h2 class="modal-title">Confirmar Remoção</h2>
+            <p class="confirmation-message">Tem a certeza que deseja remover este tipo de nota?</p>
+            <div class="confirmation-actions">
+                <button class="confirmation-btn cancel-btn" id="cancelRemoveNoteType">Cancelar</button>
+                <button class="confirmation-btn confirm-btn" id="confirmRemoveNoteType">Remover</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Dados da aplicação
         let pendingItems = JSON.parse(localStorage.getItem('pendingItems')) || [];
         let completedItems = JSON.parse(localStorage.getItem('completedItems')) || [];
         let notes = JSON.parse(localStorage.getItem('notes')) || [];
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let noteTypes = JSON.parse(localStorage.getItem('noteTypes')) || ["Falta Fornecedor", "Baixa Sistema", "Emprestado", "Outro"];
+        let profile = JSON.parse(localStorage.getItem('profile')) || { name: "" };
+        
         let currentFilter = {
             text: '',
             startDate: null,
@@ -1273,11 +1482,14 @@
             type: ''
         };
         let currentNoteId = null;
+        let currentTaskId = null;
         let checklistMode = false;
         let removeMode = false;
         let selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
         let itemToRemove = null;
         let noteToRemove = null;
+        let taskToRemove = null;
+        let noteTypeToRemove = null;
         let pendingItemToRemove = null;
         let editingPendingItemId = null;
         
@@ -1285,13 +1497,19 @@
         const homeView = document.getElementById('home-view');
         const historyView = document.getElementById('history-view');
         const notesView = document.getElementById('notes-view');
+        const tasksView = document.getElementById('tasks-view');
+        const settingsView = document.getElementById('settings-view');
         const checkItemBtn = document.getElementById('checkItemBtn');
         const addNoteBtn = document.getElementById('addNoteBtn');
+        const addTaskBtn = document.getElementById('addTaskBtn');
         const pendingList = document.getElementById('pendingList');
         const historyList = document.getElementById('historyList');
         const notesList = document.getElementById('notesList');
+        const tasksList = document.getElementById('tasksList');
         const verificationModal = document.getElementById('verificationModal');
         const notesModal = document.getElementById('notesModal');
+        const taskModal = document.getElementById('taskModal');
+        const noteTypeModal = document.getElementById('noteTypeModal');
         const closeModalBtn = document.querySelectorAll('.close-modal');
         const saveBtn = document.getElementById('saveBtn');
         const waitBtn = document.getElementById('waitBtn');
@@ -1299,6 +1517,8 @@
         const homeBtn = document.getElementById('homeBtn');
         const historyBtn = document.getElementById('historyBtn');
         const notesBtn = document.getElementById('notesBtn');
+        const tasksBtn = document.getElementById('tasksBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
         const filterBtn = document.getElementById('filterBtn');
@@ -1325,12 +1545,18 @@
         const confirmRemovePendingModal = document.getElementById('confirmRemovePendingModal');
         const confirmRemoveHistoryModal = document.getElementById('confirmRemoveHistoryModal');
         const confirmRemoveNoteModal = document.getElementById('confirmRemoveNoteModal');
+        const confirmRemoveTaskModal = document.getElementById('confirmRemoveTaskModal');
+        const confirmRemoveNoteTypeModal = document.getElementById('confirmRemoveNoteTypeModal');
         const confirmRemovePending = document.getElementById('confirmRemovePending');
         const cancelRemovePending = document.getElementById('cancelRemovePending');
         const confirmRemoveHistory = document.getElementById('confirmRemoveHistory');
         const cancelRemoveHistory = document.getElementById('cancelRemoveHistory');
         const confirmRemoveNote = document.getElementById('confirmRemoveNote');
         const cancelRemoveNote = document.getElementById('cancelRemoveNote');
+        const confirmRemoveTask = document.getElementById('confirmRemoveTask');
+        const cancelRemoveTask = document.getElementById('cancelRemoveTask');
+        const confirmRemoveNoteType = document.getElementById('confirmRemoveNoteType');
+        const cancelRemoveNoteType = document.getElementById('cancelRemoveNoteType');
         const notification = document.getElementById('notification');
         const notificationMessage = document.getElementById('notificationMessage');
         const notesSearchInput = document.getElementById('notesSearchInput');
@@ -1342,17 +1568,31 @@
         const notesFilterType = document.getElementById('notesFilterType');
         const applyNotesFilterBtn = document.getElementById('applyNotesFilterBtn');
         const clearNotesFilterBtn = document.getElementById('clearNotesFilterBtn');
+        const taskTitle = document.getElementById('taskTitle');
+        const taskDescription = document.getElementById('taskDescription');
+        const saveTaskBtn = document.getElementById('saveTaskBtn');
+        const deleteTaskBtn = document.getElementById('deleteTaskBtn');
+        const taskModalTitle = document.getElementById('taskModalTitle');
+        const userName = document.getElementById('userName');
+        const noteTypesList = document.getElementById('noteTypesList');
+        const addNoteTypeBtn = document.getElementById('addNoteTypeBtn');
+        const newNoteType = document.getElementById('newNoteType');
+        const saveNoteTypeBtn = document.getElementById('saveNoteTypeBtn');
         
         // Elementos de estatísticas
         const completedCountEl = document.getElementById('completedCount');
         const pendingCountEl = document.getElementById('pendingCount');
         const notesCountEl = document.getElementById('notesCount');
+        const tasksCountEl = document.getElementById('tasksCount');
         
         // Campos do modal de verificação
         const itemReference = document.getElementById('itemReference');
         const itemQuantityPc = document.getElementById('itemQuantityPc');
         const itemQuantityStock = document.getElementById('itemQuantityStock');
         const itemNotes = document.getElementById('itemNotes');
+        
+        // Variáveis para funcionalidade de arrastar
+        let dragSrcEl = null;
         
         // Inicializar a aplicação
         function initApp() {
@@ -1363,24 +1603,35 @@
             notesStartDate.value = '2025-01-01';
             notesEndDate.value = today;
             
+            // Carregar dados do perfil
+            userName.value = profile.name || '';
+            
             updatePendingList();
             updateHistoryList();
             updateNotesList();
+            updateTasksList();
+            updateNoteTypesList();
+            updateNoteTypeSelects();
             updateStats();
             
             // Event Listeners
             checkItemBtn.addEventListener('click', openVerificationModal);
             addNoteBtn.addEventListener('click', () => openNotesModal());
+            addTaskBtn.addEventListener('click', () => openTaskModal());
             closeModalBtn.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     if (e.target.classList.contains('close-modal')) {
                         verificationModal.style.display = 'none';
                         notesModal.style.display = 'none';
+                        taskModal.style.display = 'none';
+                        noteTypeModal.style.display = 'none';
                         filterModal.style.display = 'none';
                         notesFilterModal.style.display = 'none';
                         confirmRemovePendingModal.style.display = 'none';
                         confirmRemoveHistoryModal.style.display = 'none';
                         confirmRemoveNoteModal.style.display = 'none';
+                        confirmRemoveTaskModal.style.display = 'none';
+                        confirmRemoveNoteTypeModal.style.display = 'none';
                         
                         // Se estávamos editando um item pendente e fechamos o modal,
                         // não removemos o item da lista (correção solicitada)
@@ -1398,6 +1649,8 @@
             homeBtn.addEventListener('click', showHomeView);
             historyBtn.addEventListener('click', showHistoryView);
             notesBtn.addEventListener('click', showNotesView);
+            tasksBtn.addEventListener('click', showTasksView);
+            settingsBtn.addEventListener('click', showSettingsView);
             searchBtn.addEventListener('click', searchHistory);
             filterBtn.addEventListener('click', openFilterModal);
             checklistBtn.addEventListener('click', toggleChecklistMode);
@@ -1426,6 +1679,14 @@
             cancelRemoveNote.addEventListener('click', () => {
                 confirmRemoveNoteModal.style.display = 'none';
             });
+            confirmRemoveTask.addEventListener('click', deleteTaskConfirmed);
+            cancelRemoveTask.addEventListener('click', () => {
+                confirmRemoveTaskModal.style.display = 'none';
+            });
+            confirmRemoveNoteType.addEventListener('click', deleteNoteTypeConfirmed);
+            cancelRemoveNoteType.addEventListener('click', () => {
+                confirmRemoveNoteTypeModal.style.display = 'none';
+            });
             
             // Event listeners para funcionalidades de anotações
             notesSearchBtn.addEventListener('click', searchNotes);
@@ -1433,15 +1694,38 @@
             applyNotesFilterBtn.addEventListener('click', applyNotesFilter);
             clearNotesFilterBtn.addEventListener('click', clearNotesFilter);
             
+            // Event listeners para tarefas
+            saveTaskBtn.addEventListener('click', saveTask);
+            deleteTaskBtn.addEventListener('click', () => {
+                if (currentTaskId) {
+                    taskToRemove = currentTaskId;
+                    confirmRemoveTaskModal.style.display = 'flex';
+                }
+            });
+            
+            // Event listeners para tipos de nota
+            addNoteTypeBtn.addEventListener('click', () => {
+                newNoteType.value = '';
+                noteTypeModal.style.display = 'flex';
+            });
+            saveNoteTypeBtn.addEventListener('click', saveNoteType);
+            
+            // Event listener para perfil
+            userName.addEventListener('change', saveProfile);
+            
             // Fechar modais clicando fora deles
             window.addEventListener('click', (e) => {
                 if (e.target === verificationModal) closeVerificationModal();
                 if (e.target === notesModal) closeNotesModal();
+                if (e.target === taskModal) closeTaskModal();
+                if (e.target === noteTypeModal) closeNoteTypeModal();
                 if (e.target === filterModal) closeFilterModal();
                 if (e.target === notesFilterModal) closeNotesFilterModal();
                 if (e.target === confirmRemovePendingModal) confirmRemovePendingModal.style.display = 'none';
                 if (e.target === confirmRemoveHistoryModal) confirmRemoveHistoryModal.style.display = 'none';
                 if (e.target === confirmRemoveNoteModal) confirmRemoveNoteModal.style.display = 'none';
+                if (e.target === confirmRemoveTaskModal) confirmRemoveTaskModal.style.display = 'none';
+                if (e.target === confirmRemoveNoteTypeModal) confirmRemoveNoteTypeModal.style.display = 'none';
             });
             
             // Inicializar toggle dos lotes
@@ -2068,6 +2352,7 @@
             completedCountEl.textContent = completedItems.length;
             pendingCountEl.textContent = pendingItems.length;
             notesCountEl.textContent = notes.length;
+            tasksCountEl.textContent = tasks.length;
         }
         
         // Pesquisar no histórico
@@ -2128,9 +2413,13 @@
             homeView.style.display = 'block';
             historyView.style.display = 'none';
             notesView.style.display = 'none';
+            tasksView.style.display = 'none';
+            settingsView.style.display = 'none';
             homeBtn.classList.add('active');
             historyBtn.classList.remove('active');
             notesBtn.classList.remove('active');
+            tasksBtn.classList.remove('active');
+            settingsBtn.classList.remove('active');
             
             // Sair dos modos ao mudar de view
             checklistMode = false;
@@ -2143,9 +2432,13 @@
             homeView.style.display = 'none';
             historyView.style.display = 'block';
             notesView.style.display = 'none';
+            tasksView.style.display = 'none';
+            settingsView.style.display = 'none';
             homeBtn.classList.remove('active');
             historyBtn.classList.add('active');
             notesBtn.classList.remove('active');
+            tasksBtn.classList.remove('active');
+            settingsBtn.classList.remove('active');
             updateHistoryList();
         }
         
@@ -2154,10 +2447,53 @@
             homeView.style.display = 'none';
             historyView.style.display = 'none';
             notesView.style.display = 'block';
+            tasksView.style.display = 'none';
+            settingsView.style.display = 'none';
             homeBtn.classList.remove('active');
             historyBtn.classList.remove('active');
             notesBtn.classList.add('active');
+            tasksBtn.classList.remove('active');
+            settingsBtn.classList.remove('active');
             updateNotesList();
+            
+            // Sair dos modos ao mudar de view
+            checklistMode = false;
+            removeMode = false;
+            updateButtonStates();
+        }
+        
+        // Mostrar view de tarefas
+        function showTasksView() {
+            homeView.style.display = 'none';
+            historyView.style.display = 'none';
+            notesView.style.display = 'none';
+            tasksView.style.display = 'block';
+            settingsView.style.display = 'none';
+            homeBtn.classList.remove('active');
+            historyBtn.classList.remove('active');
+            notesBtn.classList.remove('active');
+            tasksBtn.classList.add('active');
+            settingsBtn.classList.remove('active');
+            updateTasksList();
+            
+            // Sair dos modos ao mudar de view
+            checklistMode = false;
+            removeMode = false;
+            updateButtonStates();
+        }
+        
+        // Mostrar view de definições
+        function showSettingsView() {
+            homeView.style.display = 'none';
+            historyView.style.display = 'none';
+            notesView.style.display = 'none';
+            tasksView.style.display = 'none';
+            settingsView.style.display = 'block';
+            homeBtn.classList.remove('active');
+            historyBtn.classList.remove('active');
+            notesBtn.classList.remove('active');
+            tasksBtn.classList.remove('active');
+            settingsBtn.classList.add('active');
             
             // Sair dos modos ao mudar de view
             checklistMode = false;
@@ -2172,7 +2508,7 @@
                 currentNoteId = note.id;
                 noteTitle.value = note.title;
                 noteContent.value = note.content;
-                noteType.value = note.type || "Outro";
+                updateNoteTypeSelects(note.type);
                 notesModalTitle.textContent = 'Editar Anotação';
                 deleteNoteBtn.style.display = 'block';
             } else {
@@ -2180,7 +2516,7 @@
                 currentNoteId = null;
                 noteTitle.value = '';
                 noteContent.value = '';
-                noteType.value = "Outro";
+                updateNoteTypeSelects();
                 notesModalTitle.textContent = 'Nova Anotação';
                 deleteNoteBtn.style.display = 'none';
             }
@@ -2196,7 +2532,7 @@
         function saveNote() {
             const title = noteTitle.value.trim();
             const content = noteContent.value.trim();
-            const type = noteType.value;
+            const type = document.getElementById('noteType').value;
             
             if (!title || !content) {
                 showNotification('Por favor, preencha o título e o conteúdo.');
@@ -2221,141 +2557,383 @@
                     id: Date.now(),
                     title,
                     content,
-                        type,
-                        date: new Date().toLocaleString('pt-PT')
-                    };
-                    notes.unshift(newNote);
-                }
-                
+                    type,
+                    date: new Date().toLocaleString('pt-PT')
+                };
+                notes.unshift(newNote);
+            }
+            
+            localStorage.setItem('notes', JSON.stringify(notes));
+            updateNotesList();
+            updateStats();
+            closeNotesModal();
+            showNotification('Anotação guardada com sucesso!');
+        }
+        
+        // Apagar anotação
+        function deleteNoteConfirmed() {
+            if (noteToRemove) {
+                notes = notes.filter(note => note.id !== noteToRemove);
                 localStorage.setItem('notes', JSON.stringify(notes));
                 updateNotesList();
                 updateStats();
                 closeNotesModal();
-                showNotification('Anotação guardada com sucesso!');
+                confirmRemoveNoteModal.style.display = 'none';
+                noteToRemove = null;
+                showNotification('Anotação removida com sucesso!');
+            }
+        }
+        
+        // Pesquisar anotações
+        function searchNotes() {
+            currentNotesFilter.text = notesSearchInput.value.trim();
+            updateNotesList();
+        }
+        
+        // Abrir modal de filtro de anotações
+        function openNotesFilterModal() {
+            notesFilterModal.style.display = 'flex';
+        }
+        
+        // Fechar modal de filtro de anotações
+        function closeNotesFilterModal() {
+            notesFilterModal.style.display = 'none';
+        }
+        
+        // Aplicar filtro de anotações
+        function applyNotesFilter() {
+            currentNotesFilter.startDate = new Date(notesStartDate.value);
+            currentNotesFilter.endDate = new Date(notesEndDate.value);
+            currentNotesFilter.type = notesFilterType.value;
+            
+            // Ajustar para incluir todo o dia final
+            if (currentNotesFilter.endDate) {
+                currentNotesFilter.endDate.setHours(23, 59, 59, 999);
             }
             
-            // Apagar anotação
-            function deleteNoteConfirmed() {
-                if (noteToRemove) {
-                    notes = notes.filter(note => note.id !== noteToRemove);
-                    localStorage.setItem('notes', JSON.stringify(notes));
-                    updateNotesList();
-                    updateStats();
-                    closeNotesModal();
-                    confirmRemoveNoteModal.style.display = 'none';
-                    noteToRemove = null;
-                    showNotification('Anotação removida com sucesso!');
-                }
+            closeNotesFilterModal();
+            updateNotesList();
+        }
+        
+        // Limpar filtro de anotações
+        function clearNotesFilter() {
+            currentNotesFilter = {
+                text: '',
+                startDate: null,
+                endDate: null,
+                type: ''
+            };
+            notesSearchInput.value = '';
+            notesStartDate.value = '2025-01-01';
+            notesEndDate.value = new Date().toISOString().split('T')[0];
+            notesFilterType.value = '';
+            updateNotesList();
+            closeNotesFilterModal();
+        }
+        
+        // Atualizar lista de anotações
+        function updateNotesList() {
+            let filteredNotes = notes;
+            
+            // Aplicar filtro de texto
+            if (currentNotesFilter.text) {
+                filteredNotes = filteredNotes.filter(note => 
+                    note.title.toLowerCase().includes(currentNotesFilter.text.toLowerCase())
+                );
             }
             
-            // Pesquisar anotações
-            function searchNotes() {
-                currentNotesFilter.text = notesSearchInput.value.trim();
-                updateNotesList();
-            }
-            
-            // Abrir modal de filtro de anotações
-            function openNotesFilterModal() {
-                notesFilterModal.style.display = 'flex';
-            }
-            
-            // Fechar modal de filtro de anotações
-            function closeNotesFilterModal() {
-                notesFilterModal.style.display = 'none';
-            }
-            
-            // Aplicar filtro de anotações
-            function applyNotesFilter() {
-                currentNotesFilter.startDate = new Date(notesStartDate.value);
-                currentNotesFilter.endDate = new Date(notesEndDate.value);
-                currentNotesFilter.type = notesFilterType.value;
-                
-                // Ajustar para incluir todo o dia final
-                if (currentNotesFilter.endDate) {
-                    currentNotesFilter.endDate.setHours(23, 59, 59, 999);
-                }
-                
-                closeNotesFilterModal();
-                updateNotesList();
-            }
-            
-            // Limpar filtro de anotações
-            function clearNotesFilter() {
-                currentNotesFilter = {
-                    text: '',
-                    startDate: null,
-                    endDate: null,
-                    type: ''
-                };
-                notesSearchInput.value = '';
-                notesStartDate.value = '2025-01-01';
-                notesEndDate.value = new Date().toISOString().split('T')[0];
-                notesFilterType.value = '';
-                updateNotesList();
-                closeNotesFilterModal();
-            }
-            
-            // Atualizar lista de anotações
-            function updateNotesList() {
-                let filteredNotes = notes;
-                
-                // Aplicar filtro de texto
-                if (currentNotesFilter.text) {
-                    filteredNotes = filteredNotes.filter(note => 
-                        note.title.toLowerCase().includes(currentNotesFilter.text.toLowerCase())
-                    );
-                }
-                
-                // Aplicar filtro de data
-                if (currentNotesFilter.startDate && currentNotesFilter.endDate) {
-                    filteredNotes = filteredNotes.filter(note => {
-                        const noteDate = new Date(note.date.split(',')[0].split('/').reverse().join('-'));
-                        return noteDate >= currentNotesFilter.startDate && noteDate <= currentNotesFilter.endDate;
-                    });
-                }
-                
-                // Aplicar filtro de tipo
-                if (currentNotesFilter.type) {
-                    filteredNotes = filteredNotes.filter(note => note.type === currentNotesFilter.type);
-                }
-                
-                if (filteredNotes.length === 0) {
-                    notesList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-sticky-note" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
-                            <p>Nenhuma anotação</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                notesList.innerHTML = filteredNotes.map(note => `
-                    <div class="note-item">
-                        <div class="item-info">
-                            <div class="note-title">${note.title}</div>
-                            <div class="note-date">${note.date}</div>
-                            ${note.type ? `<div class="note-type">Tipo: ${note.type}</div>` : ''}
-                        </div>
-                        <div class="item-actions">
-                            <button class="action-btn edit" onclick="openNotesModal(${JSON.stringify(note).replace(/"/g, '&quot;')})">
-                                <i class="fas fa-pencil-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-            
-            // Iniciar a aplicação quando o DOM estiver pronto
-            document.addEventListener('DOMContentLoaded', initApp);
-        </script>
-        <script>
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(reg => console.log('Service Worker registado:', reg))
-                    .catch(err => console.log('Erro no SW:', err));
+            // Aplicar filtro de data
+            if (currentNotesFilter.startDate && currentNotesFilter.endDate) {
+                filteredNotes = filteredNotes.filter(note => {
+                    const noteDate = new Date(note.date.split(',')[0].split('/').reverse().join('-'));
+                    return noteDate >= currentNotesFilter.startDate && noteDate <= currentNotesFilter.endDate;
                 });
             }
-        </script>
-    </body>
-    </html>
+            
+            // Aplicar filtro de tipo
+            if (currentNotesFilter.type) {
+                filteredNotes = filteredNotes.filter(note => note.type === currentNotesFilter.type);
+            }
+            
+            if (filteredNotes.length === 0) {
+                notesList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-sticky-note" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                        <p>Nenhuma anotação</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            notesList.innerHTML = filteredNotes.map(note => `
+                <div class="note-item">
+                    <div class="item-info">
+                        <div class="note-title">${note.title}</div>
+                        <div class="note-date">${note.date}</div>
+                        ${note.type ? `<div class="note-type">Tipo: ${note.type}</div>` : ''}
+                    </div>
+                    <div class="item-actions">
+                        <button class="action-btn edit" onclick="openNotesModal(${JSON.stringify(note).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Abrir modal de tarefas
+        function openTaskModal(task = null) {
+            if (task && typeof task === 'object') {
+                // Editar tarefa existente
+                currentTaskId = task.id;
+                taskTitle.value = task.title;
+                taskDescription.value = task.description;
+                taskModalTitle.textContent = 'Editar Tarefa';
+                deleteTaskBtn.style.display = 'block';
+            } else {
+                // Nova tarefa
+                currentTaskId = null;
+                taskTitle.value = '';
+                taskDescription.value = '';
+                taskModalTitle.textContent = 'Nova Tarefa';
+                deleteTaskBtn.style.display = 'none';
+            }
+            taskModal.style.display = 'flex';
+        }
+        
+        // Fechar modal de tarefas
+        function closeTaskModal() {
+            taskModal.style.display = 'none';
+        }
+        
+        // Salvar tarefa
+        function saveTask() {
+            const title = taskTitle.value.trim();
+            const description = taskDescription.value.trim();
+            
+            if (!title) {
+                showNotification('Por favor, preencha o título da tarefa.');
+                return;
+            }
+            
+            if (currentTaskId) {
+                // Atualizar tarefa existente
+                const taskIndex = tasks.findIndex(task => task.id === currentTaskId);
+                if (taskIndex !== -1) {
+                    tasks[taskIndex] = { 
+                        id: currentTaskId, 
+                        title, 
+                        description,
+                        date: tasks[taskIndex].date // Mantém a data original
+                    };
+                }
+            } else {
+                // Adicionar nova tarefa
+                const newTask = {
+                    id: Date.now(),
+                    title,
+                    description,
+                    date: new Date().toLocaleString('pt-PT')
+                };
+                tasks.unshift(newTask);
+            }
+            
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            updateTasksList();
+            updateStats();
+            closeTaskModal();
+            showNotification('Tarefa guardada com sucesso!');
+        }
+        
+        // Apagar tarefa
+        function deleteTaskConfirmed() {
+            if (taskToRemove) {
+                tasks = tasks.filter(task => task.id !== taskToRemove);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                updateTasksList();
+                updateStats();
+                closeTaskModal();
+                confirmRemoveTaskModal.style.display = 'none';
+                taskToRemove = null;
+                showNotification('Tarefa removida com sucesso!');
+            }
+        }
+        
+        // Atualizar lista de tarefas
+        function updateTasksList() {
+            if (tasks.length === 0) {
+                tasksList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tasks" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                        <p>Nenhuma tarefa</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            tasksList.innerHTML = tasks.map(task => `
+                <div class="task-item">
+                    <div class="item-info">
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-date">${task.date}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="action-btn edit" onclick="openTaskModal(${JSON.stringify(task).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Salvar perfil
+        function saveProfile() {
+            profile.name = userName.value;
+            localStorage.setItem('profile', JSON.stringify(profile));
+            showNotification('Perfil guardado com sucesso!');
+        }
+        
+        // Salvar tipo de nota
+        function saveNoteType() {
+            const type = newNoteType.value.trim();
+            
+            if (!type) {
+                showNotification('Por favor, preencha o tipo de nota.');
+                return;
+            }
+            
+            if (noteTypes.includes(type)) {
+                showNotification('Este tipo de nota já existe.');
+                return;
+            }
+            
+            noteTypes.push(type);
+            localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
+            updateNoteTypesList();
+            updateNoteTypeSelects();
+            closeNoteTypeModal();
+            showNotification('Tipo de nota adicionado com sucesso!');
+        }
+        
+        // Fechar modal de tipo de nota
+        function closeNoteTypeModal() {
+            noteTypeModal.style.display = 'none';
+        }
+        
+        // Remover tipo de nota
+        function removeNoteType(type) {
+            noteTypeToRemove = type;
+            confirmRemoveNoteTypeModal.style.display = 'flex';
+        }
+        
+        // Confirmar remoção de tipo de nota
+        function deleteNoteTypeConfirmed() {
+            if (noteTypeToRemove) {
+                noteTypes = noteTypes.filter(type => type !== noteTypeToRemove);
+                localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
+                updateNoteTypesList();
+                updateNoteTypeSelects();
+                confirmRemoveNoteTypeModal.style.display = 'none';
+                noteTypeToRemove = null;
+                showNotification('Tipo de nota removido com sucesso!');
+            }
+        }
+        
+        // Atualizar lista de tipos de nota
+        function updateNoteTypesList() {
+            noteTypesList.innerHTML = noteTypes.map(type => `
+                <div class="note-type-item" draggable="true" data-type="${type}">
+                    <div class="drag-handle">
+                        <i class="fas fa-grip-lines"></i>
+                    </div>
+                    <span class="note-type-name">${type}</span>
+                    <button class="action-btn delete" onclick="removeNoteType('${type}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            // Adicionar event listeners para drag and drop
+            const items = noteTypesList.querySelectorAll('.note-type-item');
+            items.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+        }
+        
+        // Atualizar selects de tipo de nota
+        function updateNoteTypeSelects(selectedValue = '') {
+            // Atualizar o select no modal de anotações
+            const noteTypeSelect = document.getElementById('noteType');
+            noteTypeSelect.innerHTML = noteTypes.map(type => 
+                `<option value="${type}" ${type === selectedValue ? 'selected' : ''}>${type}</option>`
+            ).join('');
+            
+            // Atualizar o select no modal de filtro de anotações
+            const notesFilterTypeSelect = document.getElementById('notesFilterType');
+            notesFilterTypeSelect.innerHTML = '<option value="">Todos os tipos</option>' + 
+                noteTypes.map(type => `<option value="${type}">${type}</option>`).join('');
+        }
+        
+        // Funções para drag and drop
+        function handleDragStart(e) {
+            dragSrcEl = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+            
+            this.classList.add('dragging');
+        }
+        
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+        
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            if (dragSrcEl !== this) {
+                const items = Array.from(noteTypesList.querySelectorAll('.note-type-item'));
+                const srcIndex = items.indexOf(dragSrcEl);
+                const destIndex = items.indexOf(this);
+                
+                // Reordenar o array noteTypes
+                const [movedItem] = noteTypes.splice(srcIndex, 1);
+                noteTypes.splice(destIndex, 0, movedItem);
+                
+                // Salvar no localStorage
+                localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
+                
+                // Atualizar a lista
+                updateNoteTypesList();
+                updateNoteTypeSelects();
+            }
+            
+            return false;
+        }
+        
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+        
+        // Iniciar a aplicação quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('Service Worker registado:', reg))
+                .catch(err => console.log('Erro no SW:', err));
+            });
+        }
+    </script>
+</body>
+</html>

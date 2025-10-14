@@ -499,6 +499,18 @@
         .drag-handle:active {
             cursor: grabbing;
         }
+
+        /* Placeholder visual while dragging (created dynamically) */
+        .note-type-item.placeholder {
+            opacity: 0.95;
+            background: rgba(0,0,0,0.04) !important;
+            border: 2px dashed #d0d0d0 !important;
+        }
+
+        /* Class used to enable a smooth release animation */
+        .note-type-item.release-anim {
+            transition: transform 180ms ease, opacity 180ms ease;
+        }
         
         .note-type-name {
             font-weight: 500;
@@ -3029,36 +3041,73 @@
             if (!pointerDrag.draggingEl) return;
 
             // Insert the draggingEl where placeholder is
-            pointerDrag.placeholder.parentNode.insertBefore(pointerDrag.draggingEl, pointerDrag.placeholder);
+            const parent = pointerDrag.placeholder.parentNode;
 
-            // Cleanup styles
-            pointerDrag.draggingEl.classList.remove('dragging');
-            pointerDrag.draggingEl.style.transform = '';
-            pointerDrag.draggingEl.style.position = '';
-            pointerDrag.draggingEl.style.zIndex = '';
-            pointerDrag.draggingEl.style.width = '';
+            // FLIP animation: First, get the first bounding rect of the dragged element
+            const firstRect = pointerDrag.draggingEl.getBoundingClientRect();
 
-            // Remove placeholder
-            pointerDrag.placeholder.remove();
+            parent.insertBefore(pointerDrag.draggingEl, pointerDrag.placeholder);
 
-            // Rebuild noteTypes array based on DOM order — ignore falsy data-type values
-            const items = Array.from(noteTypesList.querySelectorAll('.note-type-item'));
-            noteTypes = items.map(it => it.getAttribute('data-type')).filter(t => t != null && t !== '');
-            localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
+            // Get the last bounding rect after insertion
+            const lastRect = pointerDrag.draggingEl.getBoundingClientRect();
 
-            // Re-render to ensure event handlers are bound correctly
-            updateNoteTypesList();
+            // Compute the inverse delta
+            const deltaX = firstRect.left - lastRect.left;
+            const deltaY = firstRect.top - lastRect.top;
 
-            // Remove document listeners
-            document.removeEventListener('pointermove', pointerMoveHandler);
-            document.removeEventListener('pointerup', pointerUpHandler);
-            document.removeEventListener('touchmove', pointerMoveHandler);
-            document.removeEventListener('touchend', pointerUpHandler);
+            // Apply inverse transform so element appears to be at the original position
+            pointerDrag.draggingEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
 
-            pointerDrag.draggingEl = null;
-            pointerDrag.placeholder = null;
-            pointerDrag.startY = 0;
-            pointerDrag.offsetY = 0;
+            // Force reflow
+            // eslint-disable-next-line no-unused-expressions
+            pointerDrag.draggingEl.offsetWidth;
+
+            // Add class to enable transition and animate to identity (0,0)
+            pointerDrag.draggingEl.classList.add('release-anim');
+            pointerDrag.draggingEl.style.transform = 'translate(0, 0)';
+
+            // After transition ends, cleanup and persist order
+            const onTransitionEnd = (ev) => {
+                if (ev.target !== pointerDrag.draggingEl) return;
+
+                // Cleanup styles
+                pointerDrag.draggingEl.classList.remove('dragging');
+                pointerDrag.draggingEl.classList.remove('release-anim');
+                pointerDrag.draggingEl.style.transform = '';
+                pointerDrag.draggingEl.style.position = '';
+                pointerDrag.draggingEl.style.zIndex = '';
+                pointerDrag.draggingEl.style.width = '';
+
+                // Remove placeholder
+                if (pointerDrag.placeholder && pointerDrag.placeholder.parentNode) {
+                    pointerDrag.placeholder.remove();
+                }
+
+                // Rebuild noteTypes array based on DOM order — ignore falsy data-type values
+                const items = Array.from(noteTypesList.querySelectorAll('.note-type-item'));
+                noteTypes = items.map(it => it.getAttribute('data-type')).filter(t => t != null && t !== '');
+                localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
+
+                // Re-render to ensure event handlers are bound correctly
+                updateNoteTypesList();
+
+                // Remove document listeners
+                document.removeEventListener('pointermove', pointerMoveHandler);
+                document.removeEventListener('pointerup', pointerUpHandler);
+                document.removeEventListener('touchmove', pointerMoveHandler);
+                document.removeEventListener('touchend', pointerUpHandler);
+
+                // Remove transition listener
+                pointerDrag.draggingEl.removeEventListener('transitionend', onTransitionEnd);
+
+                // Reset pointerDrag state
+                pointerDrag.draggingEl = null;
+                pointerDrag.placeholder = null;
+                pointerDrag.startY = 0;
+                pointerDrag.offsetY = 0;
+            };
+
+            pointerDrag.draggingEl.addEventListener('transitionend', onTransitionEnd);
         }
         
         // Iniciar a aplicação quando o DOM estiver pronto

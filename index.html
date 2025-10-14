@@ -602,6 +602,12 @@
             border-radius: 8px;
             font-size: 14px;
         }
+
+        /* Force visual uppercase for item reference input */
+        #itemReference {
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
         
         textarea {
             min-height: 80px;
@@ -775,6 +781,39 @@
         .notification.show {
             opacity: 1;
             top: 30px;
+        }
+
+        .notification-action {
+            background: rgba(255,255,255,0.12);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            margin-left: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Scanner overlay */
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scanner-target {
+            width: 70%;
+            max-width: 420px;
+            height: 40%;
+            border: 2px dashed rgba(255,255,255,0.8);
+            box-shadow: 0 0 0 2000px rgba(0,0,0,0.25);
+            border-radius: 8px;
         }
         
         /* Table styles for lotes in history */
@@ -1009,6 +1048,7 @@
     <div class="notification" id="notification">
         <i class="fas fa-check-circle"></i>
         <span id="notificationMessage"></span>
+        <button id="notificationAction" class="notification-action" style="display:none"></button>
     </div>
 
     <header>
@@ -1159,6 +1199,20 @@
                     </button>
                 </div>
             </div>
+            
+            <div class="settings-category">
+                <h3>Backup & Ferramentas</h3>
+                <div class="settings-option" id="backupTools">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="add-type-btn" id="exportDataBtn"><i class="fas fa-download"></i> Exportar JSON</button>
+                        <button class="add-type-btn" id="importDataBtn"><i class="fas fa-upload"></i> Importar JSON</button>
+                        <input type="file" id="importFileInput" accept="application/json" style="display:none" />
+                        <button class="add-type-btn" id="scannerBtn"><i class="fas fa-qrcode"></i> Scanner (QR / Barcode)</button>
+                        <button class="add-type-btn" id="shareReportBtn"><i class="fas fa-share-alt"></i> Partilhar Relatório</button>
+                        <button class="add-type-btn" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -1196,7 +1250,10 @@
             
             <div class="form-group">
                 <label for="itemReference">Referência do Artigo</label>
-                <input type="text" id="itemReference" placeholder="Ex: REF-12345">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="itemReference" placeholder="Ex: REF-12345" style="flex:1">
+                    <button id="openScannerFromVerifyBtn" class="add-type-btn" style="padding:8px 10px;font-size:0.9rem;"> <i class="fas fa-qrcode"></i> Scanner</button>
+                </div>
             </div>
             
             <div class="lotes-checkbox">
@@ -1340,6 +1397,35 @@
                     <i class="fas fa-save"></i> Guardar
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div class="modal" id="scannerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Scanner QR / Barcode</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div style="text-align:center;">
+                <video id="scannerVideo" autoplay playsinline style="width:100%;max-height:320px;background:#000"></video>
+                <p id="scannerMessage">Aponte a câmara para um código.</p>
+                <div class="scanner-overlay"><div class="scanner-target"></div></div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn btn-danger" id="stopScannerBtn">Parar Scanner</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chooser Modal (for multiple lote matches) -->
+    <div class="modal" id="chooserModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Escolher Verificação</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div id="chooserList" style="max-height:50vh;overflow:auto;padding:8px"></div>
         </div>
     </div>
     
@@ -1646,6 +1732,13 @@
                         confirmRemoveNoteModal.style.display = 'none';
                         confirmRemoveTaskModal.style.display = 'none';
                         confirmRemoveNoteTypeModal.style.display = 'none';
+                        // Newly added modals
+                        const scannerModalEl = document.getElementById('scannerModal');
+                        const chooserModalEl = document.getElementById('chooserModal');
+                        if (scannerModalEl) scannerModalEl.style.display = 'none';
+                        if (chooserModalEl) chooserModalEl.style.display = 'none';
+                        // Stop camera if scanner was open
+                        try { stopScanner(); } catch (err) {}
                         
                         // Se estávamos editando um item pendente e fechamos o modal,
                         // não removemos o item da lista (correção solicitada)
@@ -1723,6 +1816,20 @@
                 noteTypeModal.style.display = 'flex';
             });
             saveNoteTypeBtn.addEventListener('click', saveNoteType);
+
+            // Backup & Tools listeners
+            const exportBtn = document.getElementById('exportDataBtn');
+            const importBtn = document.getElementById('importDataBtn');
+            const importInput = document.getElementById('importFileInput');
+            const scannerBtn = document.getElementById('scannerBtn');
+            const shareReportBtn = document.getElementById('shareReportBtn');
+            const exportPdfBtn = document.getElementById('exportPdfBtn');
+            exportBtn.addEventListener('click', exportData);
+            importBtn.addEventListener('click', () => importInput.click());
+            importInput.addEventListener('change', (e) => importData(e.target.files[0]));
+            scannerBtn.addEventListener('click', () => { scannerModal.style.display = 'flex'; startScanner(); });
+            shareReportBtn.addEventListener('click', shareReport);
+            if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportToPDF);
             
             // Event listener para perfil
             userName.addEventListener('change', saveProfile);
@@ -1740,10 +1847,91 @@
                 if (e.target === confirmRemoveNoteModal) confirmRemoveNoteModal.style.display = 'none';
                 if (e.target === confirmRemoveTaskModal) confirmRemoveTaskModal.style.display = 'none';
                 if (e.target === confirmRemoveNoteTypeModal) confirmRemoveNoteTypeModal.style.display = 'none';
+                if (e.target === document.getElementById('scannerModal')) { stopScanner(); }
+                if (e.target === document.getElementById('chooserModal')) { document.getElementById('chooserModal').style.display = 'none'; }
             });
             
             // Inicializar toggle dos lotes
             initToggles();
+
+            // Force uppercase on itemReference input (preserve caret)
+            if (itemReference) {
+                itemReference.addEventListener('input', function(e) {
+                    const el = e.target;
+                    const start = el.selectionStart;
+                    const end = el.selectionEnd;
+                    const upper = el.value.toUpperCase();
+                    if (el.value !== upper) {
+                        el.value = upper;
+                        // restore selection (try/catch for older browsers)
+                        try {
+                            el.setSelectionRange(start, end);
+                        } catch (err) {
+                            // ignore
+                        }
+                    }
+                });
+            }
+        }
+
+        // Export data as JSON (download)
+        function exportData() {
+            const payload = {
+                pendingItems,
+                completedItems,
+                notes,
+                tasks,
+                noteTypes,
+                profile
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showNotification('Exportação iniciada');
+        }
+
+        // Import JSON file and merge basic structures
+        function importData(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.pendingItems) pendingItems = data.pendingItems.concat(pendingItems || []);
+                    if (data.completedItems) completedItems = data.completedItems.concat(completedItems || []);
+                    if (data.notes) notes = data.notes.concat(notes || []);
+                    if (data.tasks) tasks = data.tasks.concat(tasks || []);
+                    if (data.noteTypes) noteTypes = Array.from(new Set((data.noteTypes || []).concat(noteTypes || [])));
+                    if (data.profile) profile = Object.assign({}, profile, data.profile);
+
+                    // Persist
+                    localStorage.setItem('pendingItems', JSON.stringify(pendingItems));
+                    localStorage.setItem('completedItems', JSON.stringify(completedItems));
+                    localStorage.setItem('notes', JSON.stringify(notes));
+                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                    localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
+                    localStorage.setItem('profile', JSON.stringify(profile));
+
+                    updatePendingList();
+                    updateHistoryList();
+                    updateNotesList();
+                    updateTasksList();
+                    updateNoteTypesList();
+                    updateNoteTypeSelects();
+
+                    showNotification('Importação concluída');
+                } catch (err) {
+                    console.error(err);
+                    showNotification('Arquivo inválido');
+                }
+            };
+            reader.readAsText(file);
         }
         
         // Abrir modal de verificação
@@ -1793,6 +1981,21 @@
                 lotesContainer.style.display = 'block';
                 standardQuantities.style.display = 'none';
                 standardQuantities2.style.display = 'none';
+                // If a reference is already provided, try to auto-fill lotes from previous saves
+                const ref = itemReference.value.trim();
+                if (ref) {
+                    const matches = findSavedLotes(ref);
+                    if (matches && matches.length > 0) {
+                        if (matches.length === 1) {
+                            populateLotesFromArray(matches[0].item.lotes);
+                            return;
+                        } else {
+                            // Show chooser modal to let user pick which verification to use
+                            openChooserModal(matches);
+                            return;
+                        }
+                    }
+                }
             } else {
                 lotesContainer.style.display = 'none';
                 standardQuantities.style.display = 'block';
@@ -1846,15 +2049,192 @@
             `;
             lotesContainer.insertBefore(loteItem, addLoteBtn);
         }
+
+        // Search saved verifications (completed then pending) for lotes by reference
+        // Returns array of matches [{source:'completed'|'pending', item}, ...]
+        // Normalize references for tolerant matching
+        function normalizeRef(s) {
+            if (!s) return '';
+            let o = s.toString().trim().toLowerCase();
+            o = o.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            o = o.replace(/[^0-9a-z\-\s]/g, ' ');
+            o = o.replace(/\s+/g, ' ').trim();
+            return o;
+        }
+
+        function extractRefFromScanned(text) {
+            if (!text) return null;
+            // 1) try url param ?ref=
+            let m = text.match(/[?&]ref=([^&\s]+)/i);
+            if (m) return decodeURIComponent(m[1]).toUpperCase();
+            // 2) try direct pattern LETTERS-NUMS
+            m = text.match(/([A-Z]{2,}[\-\s]?\d{1,})/i);
+            if (m) return m[1].replace(/\s+/g, '-').toUpperCase();
+            // 3) fallback: clean string
+            const cleaned = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^0-9A-Za-z\-]/g, '');
+            return cleaned ? cleaned.toUpperCase() : null;
+        }
+
+        function findSavedLotes(reference) {
+            if (!reference) return [];
+            const refNorm = normalizeRef(reference);
+            const matches = [];
+            // Completed items first
+            for (const item of completedItems) {
+                if (item.lotes && item.lotes.length > 0) {
+                    if (normalizeRef(item.reference) === refNorm) matches.push({ source: 'completed', item });
+                }
+            }
+            // Then pending
+            for (const item of pendingItems) {
+                if (item.lotes && item.lotes.length > 0) {
+                    if (normalizeRef(item.reference) === refNorm) matches.push({ source: 'pending', item });
+                }
+            }
+            return matches;
+        }
+
+        // Populate the lotesContainer with an array of lotes [{name, pc, stock}, ...]
+        // Temp store for previous lotes to support Undo
+        let _previousLotesSnapshot = null;
+
+        function populateLotesFromArray(lotesArray) {
+            if (!Array.isArray(lotesArray) || lotesArray.length === 0) return;
+
+            // Capture previous lotes state (serialize existing inputs)
+            const existing = Array.from(lotesContainer.querySelectorAll('.lote-item'));
+            const prev = existing.map(el => ({
+                name: el.querySelector('.lote-name') ? el.querySelector('.lote-name').value : '',
+                pc: el.querySelector('.lote-pc') ? el.querySelector('.lote-pc').value : '',
+                stock: el.querySelector('.lote-stock') ? el.querySelector('.lote-stock').value : ''
+            }));
+            _previousLotesSnapshot = prev;
+
+            // Remove existing lote items
+            existing.forEach(el => el.remove());
+
+            // Create items from provided array
+            for (const lote of lotesArray) {
+                const loteItem = document.createElement('div');
+                loteItem.className = 'lote-item';
+                loteItem.innerHTML = `
+                    <div class="lote-header">
+                        <div class="lote-name-container">
+                            <input type="text" placeholder="Nome do Lote" class="lote-name" value="${(lote.name||'').replace(/"/g,'&quot;')}">
+                        </div>
+                        <button class="lote-toggle">−</button>
+                    </div>
+                    <div class="lote-details">
+                        <div class="lote-quantities">
+                            <input type="number" placeholder="PC" class="lote-pc" value="${lote.pc != null ? lote.pc : ''}">
+                        </div>
+                        <div class="lote-quantities">
+                            <input type="number" placeholder="Stock" class="lote-stock" value="${lote.stock != null ? lote.stock : ''}">
+                        </div>
+                        <button class="remove-lote-btn">&times;</button>
+                    </div>
+                `;
+                lotesContainer.insertBefore(loteItem, addLoteBtn);
+            }
+
+            // Show Undo notification so user can revert the auto-fill
+            showActionNotification('Lotes preenchidos a partir de verificação anterior', 'Undo', () => {
+                // Restore previous lotes
+                const currentExisting = Array.from(lotesContainer.querySelectorAll('.lote-item'));
+                currentExisting.forEach(el => el.remove());
+                if (_previousLotesSnapshot && _previousLotesSnapshot.length > 0) {
+                    for (const lote of _previousLotesSnapshot) {
+                        const loteItem = document.createElement('div');
+                        loteItem.className = 'lote-item';
+                        loteItem.innerHTML = `
+                            <div class="lote-header">
+                                <div class="lote-name-container">
+                                    <input type="text" placeholder="Nome do Lote" class="lote-name" value="${(lote.name||'').replace(/"/g,'&quot;')}">
+                                </div>
+                                <button class="lote-toggle">−</button>
+                            </div>
+                            <div class="lote-details">
+                                <div class="lote-quantities">
+                                    <input type="number" placeholder="PC" class="lote-pc" value="${lote.pc != null ? lote.pc : ''}">
+                                </div>
+                                <div class="lote-quantities">
+                                    <input type="number" placeholder="Stock" class="lote-stock" value="${lote.stock != null ? lote.stock : ''}">
+                                </div>
+                                <button class="remove-lote-btn">&times;</button>
+                            </div>
+                        `;
+                        lotesContainer.insertBefore(loteItem, addLoteBtn);
+                    }
+                }
+                _previousLotesSnapshot = null;
+            }, 7000);
+        }
+
+        function openChooserModal(matches) {
+            const chooserModal = document.getElementById('chooserModal');
+            const chooserList = document.getElementById('chooserList');
+            chooserList.innerHTML = '';
+            matches.forEach((m, idx) => {
+                const row = document.createElement('div');
+                row.style.padding = '8px';
+                row.style.borderBottom = '1px solid #eee';
+                const date = m.item.date || 'Sem data';
+                row.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                        <div>
+                            <div><strong>Origem:</strong> ${m.source}</div>
+                            <div><small>${date}</small></div>
+                        </div>
+                        <div>
+                            <button class="modal-btn btn-success chooser-choose">Usar</button>
+                        </div>
+                    </div>
+                `;
+                const btn = row.querySelector('.chooser-choose');
+                btn.addEventListener('click', () => {
+                    populateLotesFromArray(m.item.lotes);
+                    chooserModal.style.display = 'none';
+                });
+                chooserList.appendChild(row);
+            });
+            chooserModal.style.display = 'flex';
+        }
         
         // Mostrar notificação
         function showNotification(message) {
             notificationMessage.textContent = message;
             notification.classList.add('show');
-            
+            // hide any action by default
+            const actionBtn = document.getElementById('notificationAction');
+            if (actionBtn) actionBtn.style.display = 'none';
+
             setTimeout(() => {
                 notification.classList.remove('show');
             }, 3000);
+        }
+
+        // Show notification with an action button (e.g., Undo)
+        function showActionNotification(message, actionText, actionCallback, timeout = 5000) {
+            notificationMessage.textContent = message;
+            const actionBtn = document.getElementById('notificationAction');
+            if (actionBtn) {
+                actionBtn.textContent = actionText;
+                actionBtn.style.display = 'inline-block';
+                // Remove previous listeners
+                const newBtn = actionBtn.cloneNode(true);
+                actionBtn.parentNode.replaceChild(newBtn, actionBtn);
+                newBtn.addEventListener('click', () => {
+                    try { actionCallback(); } catch (err) { console.error(err); }
+                    notification.classList.remove('show');
+                    newBtn.style.display = 'none';
+                });
+            }
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+                const btn = document.getElementById('notificationAction');
+                if (btn) btn.style.display = 'none';
+            }, timeout);
         }
         
         // Salvar item (verificação completa)
@@ -3112,6 +3492,207 @@
         
         // Iniciar a aplicação quando o DOM estiver pronto
         document.addEventListener('DOMContentLoaded', initApp);
+
+        // Create a simple CSV report and share via Web Share API or download
+        function shareReport() {
+            // Build CSV header
+            let csv = 'type,id,reference,date,details\n';
+            for (const it of completedItems) {
+                const details = it.lotes ? `lotes:${it.lotes.length}` : `pc:${it.quantityPc}|stock:${it.quantityStock}`;
+                csv += `completed,${it.id},"${it.reference}","${it.date}","${details}"\n`;
+            }
+            for (const it of pendingItems) {
+                const details = it.lotes ? `lotes:${it.lotes.length}` : `pc:${it.quantityPc}|stock:${it.quantityStock}`;
+                csv += `pending,${it.id},"${it.reference}","${it.date}","${details}"\n`;
+            }
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const file = new File([blob], `report-${new Date().toISOString().slice(0,10)}.csv`, { type: 'text/csv' });
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({ files: [file], title: 'Relatório Verificações' })
+                    .then(() => showNotification('Relatório partilhado'))
+                    .catch(err => { console.error(err); showNotification('Partilha cancelada'); });
+            } else {
+                // Fallback: download
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showNotification('Relatório gerado (download)');
+            }
+        }
+
+        // PDF export (lazy-load jsPDF from CDN)
+        async function exportToPDF() {
+            showNotification('A gerar PDF...');
+            try {
+                // Try to load jsPDF from CDN
+                const mod = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js');
+                const { jsPDF } = mod;
+                const doc = new jsPDF();
+                doc.setFontSize(14);
+                doc.text('Relatório de Verificações', 14, 20);
+                doc.setFontSize(10);
+                let y = 30;
+                for (const it of completedItems.slice(0, 100)) {
+                    const details = it.lotes ? `lotes:${it.lotes.length}` : `pc:${it.quantityPc}|stock:${it.quantityStock}`;
+                    doc.text(`${it.date} - ${it.reference} - ${details}`, 14, y);
+                    y += 7;
+                    if (y > 270) { doc.addPage(); y = 20; }
+                }
+                if (pendingItems.length > 0) {
+                    y += 6;
+                    doc.text('Pendentes:', 14, y); y += 6;
+                    for (const it of pendingItems.slice(0, 100)) {
+                        const details = it.lotes ? `lotes:${it.lotes.length}` : `pc:${it.quantityPc}|stock:${it.quantityStock}`;
+                        doc.text(`${it.date} - ${it.reference} - ${details}`, 14, y);
+                        y += 7;
+                        if (y > 270) { doc.addPage(); y = 20; }
+                    }
+                }
+                const blob = doc.output('blob');
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `report-${new Date().toISOString().slice(0,10)}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showNotification('PDF gerado');
+            } catch (err) {
+                console.error('PDF export failed', err);
+                showNotification('Erro a gerar PDF (biblioteca indisponível)');
+            }
+        }
+
+        
+
+        // Scanner implementation
+        let _scannerStream = null;
+        let _scannerInterval = null;
+    let _scannerOrigin = null; // 'verify' when opened from verification modal
+    let _zxingReader = null;
+
+        async function startScanner() {
+            const video = document.getElementById('scannerVideo');
+            const message = document.getElementById('scannerMessage');
+            message.textContent = 'A pedir permissão para a câmera...';
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                _scannerStream = stream;
+                video.srcObject = stream;
+                message.textContent = 'A procurar código...';
+
+                // If BarcodeDetector is available, use it
+                if ('BarcodeDetector' in window) {
+                    const detector = new BarcodeDetector({ formats: ['qr_code', 'ean_13', 'code_128'] });
+                    _scannerInterval = setInterval(async () => {
+                        try {
+                            const barcodes = await detector.detect(video);
+                            if (barcodes && barcodes.length > 0) {
+                                const code = barcodes[0].rawValue;
+                                stopScanner();
+                                showNotification('Código detectado: ' + code);
+                                // Extract a tolerant reference from scanned text
+                                const extracted = extractRefFromScanned(code) || (code || '').toUpperCase();
+                                itemReference.value = extracted;
+                                itemReference.dispatchEvent(new Event('input'));
+                                // If scanner was opened from verification modal, attempt to auto-fill lotes
+                                if (_scannerOrigin === 'verify') {
+                                    const matches = findSavedLotes(extracted);
+                                    if (matches && matches.length > 0) {
+                                        if (matches.length === 1) {
+                                            populateLotesFromArray(matches[0].item.lotes);
+                                        } else {
+                                            openChooserModal(matches);
+                                        }
+                                    }
+                                }
+                                _scannerOrigin = null;
+                                scannerModal.style.display = 'none';
+                            }
+                        } catch (err) {
+                            console.error('detector error', err);
+                        }
+                    }, 500);
+                } else {
+                    // Fallback: try to lazy-load ZXing-js (@zxing/browser) for broader support
+                    message.textContent = 'A carregar fallback do scanner...';
+                    try {
+                        // Dynamic import from unpkg (ESM). If this fails, inform the user.
+                        const mod = await import('https://unpkg.com/@zxing/browser@0.0.12/esm/index.js');
+                        const { BrowserMultiFormatReader } = mod;
+                        _zxingReader = new BrowserMultiFormatReader();
+                        // Use decodeFromVideoDevice to continuously scan
+                        _zxingReader.decodeFromVideoDevice(null, video, (result, err) => {
+                            if (result) {
+                                    const code = result.getText();
+                                    // Stop reader and stream
+                                    try { _zxingReader.reset(); } catch (e) {}
+                                    stopScanner();
+                                    showNotification('Código detectado: ' + code);
+                                    const extracted = extractRefFromScanned(code) || (code || '').toUpperCase();
+                                    itemReference.value = extracted;
+                                    itemReference.dispatchEvent(new Event('input'));
+                                    if (_scannerOrigin === 'verify') {
+                                        const matches = findSavedLotes(extracted);
+                                        if (matches && matches.length > 0) {
+                                            if (matches.length === 1) populateLotesFromArray(matches[0].item.lotes);
+                                            else openChooserModal(matches);
+                                        }
+                                    }
+                                    _scannerOrigin = null;
+                                    scannerModal.style.display = 'none';
+                                }
+                            if (err && !(err.name && err.name === 'NotFoundException')) {
+                                // ignore not found exceptions which are normal while scanning
+                                console.error('ZXing error', err);
+                            }
+                        });
+                    } catch (err) {
+                        console.error('ZXing fallback failed', err);
+                        message.textContent = 'Scanner não disponível neste browser.';
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                message.textContent = 'Não foi possível aceder à câmera.';
+            }
+        }
+
+        function stopScanner() {
+            if (_scannerInterval) { clearInterval(_scannerInterval); _scannerInterval = null; }
+            if (_zxingReader) {
+                try { _zxingReader.reset(); } catch (err) { console.warn(err); }
+                _zxingReader = null;
+            }
+            if (_scannerStream) {
+                _scannerStream.getTracks().forEach(t => t.stop());
+                _scannerStream = null;
+            }
+            const video = document.getElementById('scannerVideo');
+            if (video) video.srcObject = null;
+            const scannerModalEl = document.getElementById('scannerModal');
+            if (scannerModalEl) scannerModalEl.style.display = 'none';
+        }
+
+        // Wire stop button
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'stopScannerBtn') stopScanner();
+            if (e.target && e.target.id === 'openScannerFromVerifyBtn') {
+                // open scanner modal and mark origin
+                _scannerOrigin = 'verify';
+                document.getElementById('scannerModal').style.display = 'flex';
+                startScanner();
+            }
+        });
     </script>
     <script>
         if ('serviceWorker' in navigator) {

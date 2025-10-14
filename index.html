@@ -474,6 +474,7 @@
             margin-bottom: 8px;
             cursor: grab;
             user-select: none;
+            touch-action: none; /* allow Pointer Events dragging on mobile */
             transition: background-color 0.2s;
         }
         
@@ -492,6 +493,7 @@
             cursor: grab;
             display: flex;
             flex-direction: column;
+            touch-action: none;
         }
         
         .drag-handle:active {
@@ -2856,10 +2858,20 @@
             // Adicionar event listeners para drag and drop
             const items = noteTypesList.querySelectorAll('.note-type-item');
             items.forEach(item => {
+                // HTML5 drag for desktop
                 item.addEventListener('dragstart', handleDragStart);
                 item.addEventListener('dragover', handleDragOver);
                 item.addEventListener('drop', handleDrop);
                 item.addEventListener('dragend', handleDragEnd);
+
+                // Pointer/touch handlers on the drag handle for mobile
+                const handle = item.querySelector('.drag-handle');
+                if (handle) {
+                    // Use pointerdown which unifies mouse/touch
+                    handle.addEventListener('pointerdown', pointerDownHandler);
+                    // Also support touchstart for older mobile browsers
+                    handle.addEventListener('touchstart', function(e) { pointerDownHandler.call(handle, e); }, { passive: false });
+                }
             });
         }
         
@@ -2921,6 +2933,117 @@
         
         function handleDragEnd(e) {
             this.classList.remove('dragging');
+        }
+
+        // Pointer-based dragging for touch / mobile devices
+        let pointerDrag = {
+            draggingEl: null,
+            placeholder: null,
+            startY: 0,
+            offsetY: 0
+        };
+
+        function pointerDownHandler(e) {
+            // Only start when pressing on the drag-handle or the item itself
+            const item = this.closest('.note-type-item');
+            if (!item) return;
+
+            // Prevent the native touch scrolling while dragging
+            e.preventDefault();
+
+            pointerDrag.draggingEl = item;
+            pointerDrag.startY = (e.touches ? e.touches[0].clientY : e.clientY);
+
+            // Create placeholder
+            const rect = item.getBoundingClientRect();
+            const placeholder = document.createElement('div');
+            placeholder.className = 'note-type-item placeholder';
+            placeholder.style.height = rect.height + 'px';
+            placeholder.style.background = 'rgba(0,0,0,0.05)';
+            placeholder.style.border = '2px dashed #ccc';
+            item.parentNode.insertBefore(placeholder, item.nextSibling);
+            pointerDrag.placeholder = placeholder;
+
+            // Style dragged element
+            item.classList.add('dragging');
+            item.style.position = 'relative';
+            item.style.zIndex = 50;
+            item.style.width = '100%';
+            pointerDrag.offsetY = 0;
+
+            // Listen for move / up on document
+            document.addEventListener('pointermove', pointerMoveHandler);
+            document.addEventListener('pointerup', pointerUpHandler);
+            document.addEventListener('touchmove', pointerMoveHandler, { passive: false });
+            document.addEventListener('touchend', pointerUpHandler);
+        }
+
+        function pointerMoveHandler(e) {
+            if (!pointerDrag.draggingEl) return;
+            // Prevent scrolling
+            if (e.cancelable) e.preventDefault();
+
+            const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
+            const dy = clientY - pointerDrag.startY;
+            pointerDrag.offsetY = dy;
+            pointerDrag.draggingEl.style.transform = `translateY(${dy}px)`;
+
+            // Detect position to move placeholder
+            const items = Array.from(noteTypesList.querySelectorAll('.note-type-item'))
+                .filter(it => it !== pointerDrag.draggingEl && it !== pointerDrag.placeholder);
+
+            for (const it of items) {
+                const r = it.getBoundingClientRect();
+                const mid = r.top + r.height / 2;
+                if (clientY < mid) {
+                    if (pointerDrag.placeholder.nextSibling !== it) {
+                        it.parentNode.insertBefore(pointerDrag.placeholder, it);
+                    }
+                    break;
+                } else {
+                    if (!it.nextSibling) {
+                        it.parentNode.appendChild(pointerDrag.placeholder);
+                    } else if (it.nextSibling === pointerDrag.placeholder) {
+                        // already in place
+                    }
+                }
+            }
+        }
+
+        function pointerUpHandler(e) {
+            if (!pointerDrag.draggingEl) return;
+
+            // Insert the draggingEl where placeholder is
+            pointerDrag.placeholder.parentNode.insertBefore(pointerDrag.draggingEl, pointerDrag.placeholder);
+
+            // Cleanup styles
+            pointerDrag.draggingEl.classList.remove('dragging');
+            pointerDrag.draggingEl.style.transform = '';
+            pointerDrag.draggingEl.style.position = '';
+            pointerDrag.draggingEl.style.zIndex = '';
+            pointerDrag.draggingEl.style.width = '';
+
+            // Remove placeholder
+            pointerDrag.placeholder.remove();
+
+            // Rebuild noteTypes array based on DOM order
+            const items = Array.from(noteTypesList.querySelectorAll('.note-type-item'));
+            noteTypes = items.map(it => it.getAttribute('data-type'));
+            localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
+
+            // Re-render to ensure event handlers are bound correctly
+            updateNoteTypesList();
+
+            // Remove document listeners
+            document.removeEventListener('pointermove', pointerMoveHandler);
+            document.removeEventListener('pointerup', pointerUpHandler);
+            document.removeEventListener('touchmove', pointerMoveHandler);
+            document.removeEventListener('touchend', pointerUpHandler);
+
+            pointerDrag.draggingEl = null;
+            pointerDrag.placeholder = null;
+            pointerDrag.startY = 0;
+            pointerDrag.offsetY = 0;
         }
         
         // Iniciar a aplicação quando o DOM estiver pronto

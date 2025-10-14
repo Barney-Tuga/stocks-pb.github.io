@@ -2843,6 +2843,8 @@
         
         // Atualizar lista de tipos de nota
         function updateNoteTypesList() {
+            // Remove any null/empty entries that may have sneaked into the array
+            noteTypes = noteTypes.filter(t => t != null && t !== '');
             noteTypesList.innerHTML = noteTypes.map(type => `
                 <div class="note-type-item" draggable="true" data-type="${type}">
                     <div class="drag-handle">
@@ -2912,17 +2914,30 @@
             }
             
             if (dragSrcEl !== this) {
-                const items = Array.from(noteTypesList.querySelectorAll('.note-type-item'));
-                const srcIndex = items.indexOf(dragSrcEl);
-                const destIndex = items.indexOf(this);
-                
-                // Reordenar o array noteTypes
-                const [movedItem] = noteTypes.splice(srcIndex, 1);
-                noteTypes.splice(destIndex, 0, movedItem);
-                
+                // Try to compute indices based on data-type; if anything is invalid, rebuild from DOM order
+                const srcType = dragSrcEl ? dragSrcEl.getAttribute('data-type') : null;
+                const destType = this.getAttribute('data-type');
+                let srcIndex = noteTypes.indexOf(srcType);
+                let destIndex = noteTypes.indexOf(destType);
+
+                if (srcIndex === -1 || destIndex === -1) {
+                    // Fallback: rebuild noteTypes from DOM in current order, ignoring falsy values
+                    const domItems = Array.from(noteTypesList.querySelectorAll('.note-type-item'));
+                    noteTypes = domItems.map(it => it.getAttribute('data-type')).filter(t => t != null && t !== '');
+                } else {
+                    const [movedItem] = noteTypes.splice(srcIndex, 1);
+                    if (typeof movedItem !== 'undefined' && movedItem != null) {
+                        noteTypes.splice(destIndex, 0, movedItem);
+                    } else {
+                        // Unexpected undefined movedItem — fallback to DOM order
+                        const domItems = Array.from(noteTypesList.querySelectorAll('.note-type-item'));
+                        noteTypes = domItems.map(it => it.getAttribute('data-type')).filter(t => t != null && t !== '');
+                    }
+                }
+
                 // Salvar no localStorage
                 localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
-                
+
                 // Atualizar a lista
                 updateNoteTypesList();
                 updateNoteTypeSelects();
@@ -3026,9 +3041,9 @@
             // Remove placeholder
             pointerDrag.placeholder.remove();
 
-            // Rebuild noteTypes array based on DOM order
+            // Rebuild noteTypes array based on DOM order — ignore falsy data-type values
             const items = Array.from(noteTypesList.querySelectorAll('.note-type-item'));
-            noteTypes = items.map(it => it.getAttribute('data-type'));
+            noteTypes = items.map(it => it.getAttribute('data-type')).filter(t => t != null && t !== '');
             localStorage.setItem('noteTypes', JSON.stringify(noteTypes));
 
             // Re-render to ensure event handlers are bound correctly

@@ -555,6 +555,36 @@
             max-height: 90vh;
             overflow-y: auto;
         }
+
+        /* Keep modal action buttons visible on mobile when keyboard is open by
+           pinning them to the top of the scrollable modal-content. This avoids
+           scroll being trapped by the keyboard at the bottom. */
+        .modal-content .modal-actions {
+            position: -webkit-sticky; /* Safari */
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: white;
+            padding-top: 10px;
+            margin-top: -10px; /* pull slightly to align with modal header */
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Apply same sticky behavior to filter-modal actions */
+        .filter-modal-content .filter-modal-actions {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: white;
+            padding-top: 10px;
+            margin-top: -10px;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            display: flex;
+            gap: 8px;
+        }
         
         .modal-header {
             display: flex;
@@ -719,8 +749,8 @@
         }
         
         .lote-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            /* show pc and stock on same row */
+            display: flex;
             gap: 8px;
             margin-top: 8px;
         }
@@ -731,8 +761,21 @@
         
         .lote-quantities {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            align-items: center;
             gap: 8px;
+        }
+
+        /* Row layout for standard quantities when not using lotes */
+        .quantity-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .quantity-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
         }
         
         .add-lote-btn {
@@ -1213,6 +1256,16 @@
                     </div>
                 </div>
             </div>
+
+            <div class="settings-category">
+                <h3>Scanner</h3>
+                <div class="settings-option" id="scannerSettings">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="checkbox" id="showScannerButtonCheckbox" />
+                        <label for="showScannerButtonCheckbox" style="font-weight:600;">Mostrar botão Scanner</label>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -1284,14 +1337,15 @@
                 </button>
             </div>
             
-            <div class="form-group" id="standardQuantities">
-                <label for="itemQuantityPc">Quantidade PC</label>
-                <input type="number" id="itemQuantityPc" placeholder="Ex: 10">
-            </div>
-            
-            <div class="form-group" id="standardQuantities2">
-                <label for="itemQuantityStock">Quantidade Stock</label>
-                <input type="number" id="itemQuantityStock" placeholder="Ex: 8">
+            <div class="quantity-row" id="standardQuantitiesRow">
+                <div class="form-group">
+                    <label for="itemQuantityPc">Quantidade PC</label>
+                    <input type="number" id="itemQuantityPc" placeholder="Ex: 10">
+                </div>
+                <div class="form-group">
+                    <label for="itemQuantityStock">Quantidade Stock</label>
+                    <input type="number" id="itemQuantityStock" placeholder="Ex: 8">
+                </div>
             </div>
             
             <div class="form-group">
@@ -1586,6 +1640,7 @@
         let checklistMode = false;
         let removeMode = false;
         let selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
+    let deselectedZeroDiff = JSON.parse(localStorage.getItem('deselectedZeroDiff')) || [];
         let itemToRemove = null;
         let noteToRemove = null;
         let taskToRemove = null;
@@ -1639,9 +1694,8 @@
         const notesModalTitle = document.getElementById('notesModalTitle');
         const hasLotesCheckbox = document.getElementById('hasLotes');
         const lotesContainer = document.getElementById('lotesContainer');
-        const addLoteBtn = document.getElementById('addLoteBtn');
-        const standardQuantities = document.getElementById('standardQuantities');
-        const standardQuantities2 = document.getElementById('standardQuantities2');
+    const addLoteBtn = document.getElementById('addLoteBtn');
+    const standardQuantitiesRow = document.getElementById('standardQuantitiesRow');
         const confirmRemovePendingModal = document.getElementById('confirmRemovePendingModal');
         const confirmRemoveHistoryModal = document.getElementById('confirmRemoveHistoryModal');
         const confirmRemoveNoteModal = document.getElementById('confirmRemoveNoteModal');
@@ -1822,6 +1876,8 @@
             const importBtn = document.getElementById('importDataBtn');
             const importInput = document.getElementById('importFileInput');
             const scannerBtn = document.getElementById('scannerBtn');
+                const openScannerFromVerifyBtn = document.getElementById('openScannerFromVerifyBtn');
+                const showScannerButtonCheckbox = document.getElementById('showScannerButtonCheckbox');
             const shareReportBtn = document.getElementById('shareReportBtn');
             const exportPdfBtn = document.getElementById('exportPdfBtn');
             exportBtn.addEventListener('click', exportData);
@@ -1853,6 +1909,25 @@
             
             // Inicializar toggle dos lotes
             initToggles();
+
+            // Initialize scanner button visibility based on settings in localStorage
+            const scannerSetting = JSON.parse(localStorage.getItem('settings')) || {};
+            const showScanner = ('showScannerButton' in scannerSetting) ? !!scannerSetting.showScannerButton : true;
+            if (showScannerButtonCheckbox) {
+                showScannerButtonCheckbox.checked = showScanner;
+                if (scannerBtn) scannerBtn.style.display = showScanner ? 'inline-flex' : 'none';
+                if (openScannerFromVerifyBtn) openScannerFromVerifyBtn.style.display = showScanner ? 'inline-flex' : 'none';
+
+                showScannerButtonCheckbox.addEventListener('change', (e) => {
+                    const val = !!e.target.checked;
+                    if (scannerBtn) scannerBtn.style.display = val ? 'inline-flex' : 'none';
+                    if (openScannerFromVerifyBtn) openScannerFromVerifyBtn.style.display = val ? 'inline-flex' : 'none';
+                    // persist
+                    const s = JSON.parse(localStorage.getItem('settings')) || {};
+                    s.showScannerButton = val;
+                    localStorage.setItem('settings', JSON.stringify(s));
+                });
+            }
 
             // Force uppercase on itemReference input (preserve caret)
             if (itemReference) {
@@ -1955,8 +2030,7 @@
             itemNotes.value = '';
             hasLotesCheckbox.checked = false;
             lotesContainer.style.display = 'none';
-            standardQuantities.style.display = 'block';
-            standardQuantities2.style.display = 'block';
+            if (standardQuantitiesRow) standardQuantitiesRow.style.display = 'flex';
             
             // Remover todos os lotes exceto o primeiro
             const loteItems = lotesContainer.querySelectorAll('.lote-item');
@@ -1979,8 +2053,7 @@
         function toggleLotesContainer() {
             if (hasLotesCheckbox.checked) {
                 lotesContainer.style.display = 'block';
-                standardQuantities.style.display = 'none';
-                standardQuantities2.style.display = 'none';
+                if (standardQuantitiesRow) standardQuantitiesRow.style.display = 'none';
                 // If a reference is already provided, try to auto-fill lotes from previous saves
                 const ref = itemReference.value.trim();
                 if (ref) {
@@ -1998,8 +2071,7 @@
                 }
             } else {
                 lotesContainer.style.display = 'none';
-                standardQuantities.style.display = 'block';
-                standardQuantities2.style.display = 'block';
+                if (standardQuantitiesRow) standardQuantitiesRow.style.display = 'flex';
             }
         }
         
@@ -2101,6 +2173,13 @@
         function populateLotesFromArray(lotesArray) {
             if (!Array.isArray(lotesArray) || lotesArray.length === 0) return;
 
+            // Ensure UI is in lotes mode
+            try {
+                hasLotesCheckbox.checked = true;
+            } catch (e) {}
+            if (lotesContainer) lotesContainer.style.display = 'block';
+            if (standardQuantitiesRow) standardQuantitiesRow.style.display = 'none';
+
             // Capture previous lotes state (serialize existing inputs)
             const existing = Array.from(lotesContainer.querySelectorAll('.lote-item'));
             const prev = existing.map(el => ({
@@ -2114,6 +2193,9 @@
             existing.forEach(el => el.remove());
 
             // Create items from provided array
+            // NOTE: per user request, when auto-filling from a previous verification
+            // we only prefill the lote name. PC and Stock inputs are left empty so
+            // the user must enter current quantities manually.
             for (const lote of lotesArray) {
                 const loteItem = document.createElement('div');
                 loteItem.className = 'lote-item';
@@ -2126,16 +2208,20 @@
                     </div>
                     <div class="lote-details">
                         <div class="lote-quantities">
-                            <input type="number" placeholder="PC" class="lote-pc" value="${lote.pc != null ? lote.pc : ''}">
+                            <input type="number" placeholder="PC" class="lote-pc" value="">
                         </div>
                         <div class="lote-quantities">
-                            <input type="number" placeholder="Stock" class="lote-stock" value="${lote.stock != null ? lote.stock : ''}">
+                            <input type="number" placeholder="Stock" class="lote-stock" value="">
                         </div>
                         <button class="remove-lote-btn">&times;</button>
                     </div>
                 `;
                 lotesContainer.insertBefore(loteItem, addLoteBtn);
             }
+
+            // Focus first lote name for convenience
+            const firstInserted = lotesContainer.querySelector('.lote-item .lote-name');
+            if (firstInserted) firstInserted.focus();
 
             // Show Undo notification so user can revert the auto-fill
             showActionNotification('Lotes preenchidos a partir de verificação anterior', 'Undo', () => {
@@ -2170,34 +2256,21 @@
             }, 7000);
         }
 
+        // Disabled interactive chooser: automatically pick the first match
         function openChooserModal(matches) {
+            if (!Array.isArray(matches) || matches.length === 0) return;
+            // Automatically populate with the first match (no chooser shown)
+            const first = matches[0];
+            if (first && first.item && Array.isArray(first.item.lotes) && first.item.lotes.length > 0) {
+                populateLotesFromArray(first.item.lotes);
+                showNotification('Lotes preenchidos automaticamente a partir da primeira verificação encontrada.');
+            } else {
+                // Fallback: do nothing
+                console.warn('openChooserModal: nenhum lote disponível no primeiro match');
+            }
+            // Ensure the chooser modal (if present) is hidden
             const chooserModal = document.getElementById('chooserModal');
-            const chooserList = document.getElementById('chooserList');
-            chooserList.innerHTML = '';
-            matches.forEach((m, idx) => {
-                const row = document.createElement('div');
-                row.style.padding = '8px';
-                row.style.borderBottom = '1px solid #eee';
-                const date = m.item.date || 'Sem data';
-                row.innerHTML = `
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                        <div>
-                            <div><strong>Origem:</strong> ${m.source}</div>
-                            <div><small>${date}</small></div>
-                        </div>
-                        <div>
-                            <button class="modal-btn btn-success chooser-choose">Usar</button>
-                        </div>
-                    </div>
-                `;
-                const btn = row.querySelector('.chooser-choose');
-                btn.addEventListener('click', () => {
-                    populateLotesFromArray(m.item.lotes);
-                    chooserModal.style.display = 'none';
-                });
-                chooserList.appendChild(row);
-            });
-            chooserModal.style.display = 'flex';
+            if (chooserModal) chooserModal.style.display = 'none';
         }
         
         // Mostrar notificação
@@ -2537,9 +2610,30 @@
             // Aplicar filtro de tipo (checklist)
             if (currentFilter.type) {
                 if (currentFilter.type === 'checked') {
-                    filteredItems = filteredItems.filter(item => selectedItems.includes(item.id));
+                    // Include items that are explicitly selected OR have zero difference (unless user explicitly deselected them)
+                    filteredItems = filteredItems.filter(item => {
+                        if (selectedItems.includes(item.id)) return true;
+                        // determine zero-difference
+                        if (item.lotes) {
+                            let totalPc = 0, totalStock = 0;
+                            for (const lote of item.lotes) { totalPc += (lote.pc || 0); totalStock += (lote.stock || 0); }
+                            return totalPc === totalStock && !deselectedZeroDiff.includes(item.id);
+                        } else {
+                            return (item.quantityPc != null && item.quantityStock != null && item.quantityPc === item.quantityStock) && !deselectedZeroDiff.includes(item.id);
+                        }
+                    });
                 } else if (currentFilter.type === 'unchecked') {
-                    filteredItems = filteredItems.filter(item => !selectedItems.includes(item.id));
+                    filteredItems = filteredItems.filter(item => {
+                        if (selectedItems.includes(item.id)) return false;
+                        if (item.lotes) {
+                            let totalPc = 0, totalStock = 0;
+                            for (const lote of item.lotes) { totalPc += (lote.pc || 0); totalStock += (lote.stock || 0); }
+                            // show as unchecked if totals differ OR user explicitly deselected zero-diff
+                            return totalPc !== totalStock || deselectedZeroDiff.includes(item.id);
+                        } else {
+                            return !(item.quantityPc != null && item.quantityStock != null && item.quantityPc === item.quantityStock) || deselectedZeroDiff.includes(item.id);
+                        }
+                    });
                 }
             }
             
@@ -2554,7 +2648,17 @@
             }
             
             let historyHTML = filteredItems.map(item => {
-                const isSelected = selectedItems.includes(item.id);
+                // Determine if item has zero difference
+                let isZeroDiff = false;
+                if (item.lotes) {
+                    let totalPc = 0, totalStock = 0;
+                    for (const lote of item.lotes) { totalPc += (lote.pc || 0); totalStock += (lote.stock || 0); }
+                    isZeroDiff = totalPc === totalStock;
+                } else {
+                    isZeroDiff = (item.quantityPc != null && item.quantityStock != null && item.quantityPc === item.quantityStock);
+                }
+                // Consider selected if explicitly selected OR zero-diff (and not explicitly deselected)
+                const isSelected = selectedItems.includes(item.id) || (isZeroDiff && !deselectedZeroDiff.includes(item.id));
                 let content = '';
                 
                 if (item.lotes) {
@@ -2568,8 +2672,8 @@
                     }
                     
                     const totalDifference = totalStock - totalPc;
-                    const totalDifferenceClass = totalDifference >= 0 ? 'positive' : 'negative';
-                    const totalDifferenceSymbol = totalDifference >= 0 ? '+' : '';
+                    const totalDifferenceClass = totalDifference > 0 ? 'positive' : (totalDifference < 0 ? 'negative' : 'neutral');
+                    const totalDifferenceSymbol = totalDifference > 0 ? '+' : (totalDifference === 0 ? '' : '');
                     
                     // Construir tabela de lotes
                     let lotesTable = `
@@ -2586,9 +2690,9 @@
                     `;
                     
                     for (const lote of item.lotes) {
-                        const difference = lote.stock - lote.pc;
-                        const differenceClass = difference >= 0 ? 'positive' : 'negative';
-                        const differenceSymbol = difference >= 0 ? '+' : '';
+                        const difference = (lote.stock || 0) - (lote.pc || 0);
+                        const differenceClass = difference > 0 ? 'positive' : (difference < 0 ? 'negative' : 'neutral');
+                        const differenceSymbol = difference > 0 ? '+' : (difference === 0 ? '' : '');
                         
                         lotesTable += `
                             <tr>
@@ -2616,7 +2720,7 @@
                     content = `
                     <div class="history-item ${isSelected ? 'selected' : ''}" data-id="${item.id}">
                         ${checklistMode ? `
-                        <input type="checkbox" class="history-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelectItem(${item.id}, this.checked)">
+                        <input type="checkbox" class="history-checkbox" ${isSelected || (totalPc === totalStock && !deselectedZeroDiff.includes(item.id)) ? 'checked' : ''} onchange="toggleSelectItem(${item.id}, this.checked)">
                         ` : ''}
                         <div style="flex: 1;">
                             <div class="history-header">
@@ -2634,14 +2738,15 @@
                     </div>
                     `;
                 } else {
-                    const difference = item.quantityStock - item.quantityPc;
-                    const differenceClass = difference >= 0 ? 'positive' : 'negative';
-                    const differenceSymbol = difference >= 0 ? '+' : '';
+                    const difference = (item.quantityStock || 0) - (item.quantityPc || 0);
+                    const differenceClass = difference > 0 ? 'positive' : (difference < 0 ? 'negative' : 'neutral');
+                    const differenceSymbol = difference > 0 ? '+' : (difference === 0 ? '' : '');
+                    const isZeroDiff = difference === 0;
                     
                     content = `
                     <div class="history-item ${isSelected ? 'selected' : ''}" data-id="${item.id}">
                         ${checklistMode ? `
-                        <input type="checkbox" class="history-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelectItem(${item.id}, this.checked)">
+                        <input type="checkbox" class="history-checkbox" ${isSelected || (isZeroDiff && !deselectedZeroDiff.includes(item.id)) ? 'checked' : ''} onchange="toggleSelectItem(${item.id}, this.checked)">
                         ` : ''}
                         <div style="flex: 1;">
                             <div class="history-header">
@@ -2702,16 +2807,36 @@
         
         // Selecionar/desselecionar item
         function toggleSelectItem(id, isChecked) {
-            if (isChecked) {
-                if (!selectedItems.includes(id)) {
-                    selectedItems.push(id);
+            // Helper to detect zero-difference for an item id
+            function isZeroDiffById(itemId) {
+                const it = completedItems.find(i => i.id === itemId) || pendingItems.find(i => i.id === itemId);
+                if (!it) return false;
+                if (it.lotes) {
+                    let totalPc = 0, totalStock = 0;
+                    for (const lote of it.lotes) { totalPc += (lote.pc || 0); totalStock += (lote.stock || 0); }
+                    return totalPc === totalStock;
                 }
+                return (it.quantityPc != null && it.quantityStock != null && it.quantityPc === it.quantityStock);
+            }
+
+            if (isChecked) {
+                if (!selectedItems.includes(id)) selectedItems.push(id);
+                // If user checks again, remove any explicit deselection for zero-diff
+                deselectedZeroDiff = deselectedZeroDiff.filter(x => x !== id);
             } else {
                 selectedItems = selectedItems.filter(itemId => itemId !== id);
+                // If this item is zero-diff, record that the user explicitly deselected it
+                if (isZeroDiffById(id)) {
+                    if (!deselectedZeroDiff.includes(id)) deselectedZeroDiff.push(id);
+                } else {
+                    // ensure it's not in deselectedZeroDiff if user unchecked a non-zero item
+                    deselectedZeroDiff = deselectedZeroDiff.filter(x => x !== id);
+                }
             }
-            
+
             // Guardar no localStorage
             localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
+            localStorage.setItem('deselectedZeroDiff', JSON.stringify(deselectedZeroDiff));
             
             // Atualizar a lista para refletir as mudanças
             updateHistoryList();
